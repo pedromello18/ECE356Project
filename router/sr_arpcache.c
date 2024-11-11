@@ -16,8 +16,49 @@
   checking whether we should resend an request or destroy the arp request.
   See the comments in the header file for an idea of what it should look like.
 */
-void sr_arpcache_sweepreqs(struct sr_instance *sr) { 
-    /* Fill this in */
+void sr_arpcache_sweepreqs(struct sr_instance *sr) {
+    struct sr_arpreq *req = sr->cache.requests;
+    while (req != NULL) {
+        struct sr_arpreq *next_req = req->next;
+        time_t now = time(NULL);
+        if (difftime(now, req->sent) >= 1.0) {
+            if (req->times_sent >= 5) {
+                struct sr_packet *packet = req->packets;
+                while (packet != NULL) {
+                    send_icmp_host_unreachable(sr, packet);
+                    packet = packet->next;
+                }
+                sr_arpreq_destroy(&sr->cache, req); // Destroy the ARP request after sending ICMP messages
+            } 
+            else {
+                struct sr_if *iface = sr_get_interface(sr, req->iface);
+                if (iface) {
+                    uint8_t arp_packet[sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t)];
+                    
+                    sr_ethernet_hdr_t *eth_hdr = (sr_ethernet_hdr_t *)arp_packet;
+                    memset(eth_hdr->ether_dhost, 0xff, ETHER_ADDR_LEN);  // Broadcast
+                    memcpy(eth_hdr->ether_shost, iface->addr, ETHER_ADDR_LEN);
+                    eth_hdr->ether_type = htons(ethertype_arp);
+                    
+                    sr_arp_hdr_t *arp_hdr = (sr_arp_hdr_t *)(arp_packet + sizeof(sr_ethernet_hdr_t));
+                    arp_hdr->ar_hrd = htons(arp_hrd_ethernet);
+                    arp_hdr->ar_pro = htons(ethertype_ip);
+                    arp_hdr->ar_hln = ETHER_ADDR_LEN;
+                    arp_hdr->ar_pln = sizeof(uint32_t);
+                    arp_hdr->ar_op = htons(arp_op_request);
+                    memcpy(arp_hdr->ar_sha, iface->addr, ETHER_ADDR_LEN);
+                    arp_hdr->ar_sip = iface->ip;
+                    memset(arp_hdr->ar_tha, 0x00, ETHER_ADDR_LEN);
+                    arp_hdr->ar_tip = req->ip;
+                    
+                    sr_send_packet(sr, arp_packet, sizeof(arp_packet), iface->name);
+                    req->sent = now;
+                    req->times_sent++;
+                }
+            }
+        }
+        req = next_req;
+    }
 }
 
 void send_icmp_host_unreachable(struct sr_instance *sr, struct sr_packet *packet) {
