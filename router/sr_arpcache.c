@@ -20,6 +20,46 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
     /* Fill this in */
 }
 
+void send_icmp_host_unreachable(struct sr_instance *sr, struct sr_packet *packet) {
+    uint8_t *icmp_packet;
+    unsigned int icmp_len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t);
+    icmp_packet = (uint8_t *)malloc(icmp_len);
+    
+    sr_ethernet_hdr_t *eth_hdr = (sr_ethernet_hdr_t *)packet->buf;
+    sr_ip_hdr_t *ip_hdr = (sr_ip_hdr_t *)(packet->buf + sizeof(sr_ethernet_hdr_t));
+    
+    sr_ethernet_hdr_t *new_eth_hdr = (sr_ethernet_hdr_t *)icmp_packet;
+    memcpy(new_eth_hdr->ether_shost, sr_get_interface(sr, packet->iface)->addr, ETHER_ADDR_LEN);
+    memcpy(new_eth_hdr->ether_dhost, eth_hdr->ether_shost, ETHER_ADDR_LEN);
+    new_eth_hdr->ether_type = htons(ethertype_ip);
+    
+    sr_ip_hdr_t *new_ip_hdr = (sr_ip_hdr_t *)(icmp_packet + sizeof(sr_ethernet_hdr_t));
+    new_ip_hdr->ip_v = 4;
+    new_ip_hdr->ip_hl = 5;
+    new_ip_hdr->ip_tos = 0;
+    new_ip_hdr->ip_len = htons(icmp_len - sizeof(sr_ethernet_hdr_t));
+    new_ip_hdr->ip_id = htons(0);
+    new_ip_hdr->ip_off = htons(IP_DF);
+    new_ip_hdr->ip_ttl = 64;
+    new_ip_hdr->ip_p = ip_protocol_icmp;
+    new_ip_hdr->ip_src = sr_get_interface(sr, packet->iface)->ip;
+    new_ip_hdr->ip_dst = ip_hdr->ip_src;
+    new_ip_hdr->ip_sum = 0;
+    new_ip_hdr->ip_sum = cksum(new_ip_hdr, sizeof(sr_ip_hdr_t));
+    
+    sr_icmp_t3_hdr_t *icmp_hdr = (sr_icmp_t3_hdr_t *)(icmp_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+    icmp_hdr->icmp_type = 3;
+    icmp_hdr->icmp_code = 1;
+    icmp_hdr->unused = 0;
+    icmp_hdr->next_mtu = 0;
+    memcpy(icmp_hdr->data, ip_hdr, ICMP_DATA_SIZE);
+    icmp_hdr->icmp_sum = 0;
+    icmp_hdr->icmp_sum = cksum(icmp_hdr, sizeof(sr_icmp_t3_hdr_t));
+    
+    sr_send_packet(sr, icmp_packet, icmp_len, packet->iface);
+    free(icmp_packet);
+}
+
 /* You should not need to touch the rest of this code. */
 
 /* Checks if an IP->MAC mapping is in the cache. IP is in network byte order.

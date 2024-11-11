@@ -78,7 +78,76 @@ void sr_handlepacket(struct sr_instance* sr,
 
   printf("*** -> Received packet of length %d \n",len);
 
-  /* fill in code here */
+  // Sanity check the packet (meets minimum length and has correct checksum).
+  if(len - 14 < 21)
+  {
+    // invalid length > drop that shit
+    return;
+  }
+  
+  struct sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)packet + 14;
+  uint16_t expected_checksum = cksum(p_ip_header, len-14);
+  uint16_t received_checksum = p_ip_header->ip_sum;
+
+  if(received_checksum != expected_checksum)
+  {
+    // error detected > drop that shit
+    return;
+  }
+
+  // Decrement the TTL by 1, and recompute the packet checksum over the modified header.
+  uint8_t received_ttl = p_ip_header->ip_ttl
+  if(received_ttl == 0)
+  {
+    // time exceeded > send ICMP message
+    struct sr_icmp_hdr_t icmp_hdr;
+    icmp_hdr.icmp_type = 11;
+    icmp_hdr.icmp_code = 0;
+    icmp_hdr.icmp_sum = 0;
+    icmp_hdr.icmp_sum = cksum(&icmp_hdr, 32);
+    sr_send_packet(/* add arguments in here */)
+  }
+  ip_header[8] = received_ttl - 1;
+  uint16_t new_checksum = cksum(ip_header, len - 14); 
+  ip_header[10] = new_checksum & 0xFF;
+  ip_header[11] = (new_checksum >> 8) & 0xFF;
+
+  // Find out which entry in the routing table has the longest prefix match with the destination IP address.
+  sr_rt *longest_match_entry = this.routing_table;
+  sr_rt *cur = this.routing_table;
+  while(cur.next != NULL)
+  {
+    // 
+    cur = cur.next;
+  }
+  // TODO: add case for destination net unreachable
+  // TODO: add case for port unreachable
+
+  // Get Destination IP using ARP
+
+/* Checks if an IP->MAC mapping is in the cache. IP is in network byte order.
+   You must free the returned structure if it is not NULL. */
+  struct sr_arpentry *arpentry = sr_arpcache_lookup(&this.cache, p_ip_header->ip_dst);
+  if(arpentry == NULL)
+  {
+    // mapping not in cache > send ARP request
+  }
+  else
+  {
+    uint32_t dest_ip_addr = arpentry->ip;
+
+  }
+
+/*
+  Check the ARP cache for the next-hop MAC address corresponding to the nexthop IP. If it's there, send it. Otherwise, send an ARP request for the next-hop IP
+  (if one hasn't been sent within the last second), and add the packet to the queue of
+  packets waiting on this ARP request. Obviously, this is a very simplified version
+  of the forwarding process, and the low-level details follow. For example, if an
+  error occurs in any of the above steps, you will have to send an ICMP message
+  back to the sender notifying them of an error. You may also get an ARP request
+  or reply, which has to interact with the ARP cache correctly.
+*/
 
 }/* end sr_ForwardPacket */
+
 
