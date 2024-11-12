@@ -85,7 +85,50 @@ void sr_handlepacket(struct sr_instance* sr,
     return;
   }
   
-  struct sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)packet + 14;
+  struct sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)packet;
+  
+  // See if this is an ARP or IP packet type
+  uint16_t packet_type_id = p_ethernet_header->ether_type;
+  if(packet_type_id == ethertype_arp)
+  {
+    struct sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *) packet + 14;
+    unsigned short arp_opcode = p_arp_header->ar_op;
+    if (arp_opcode == arp_op_request)
+    {
+      uint32_t ip_dst = p_arp_header->ar_tip;
+      // check my cache and respond if I find it
+      uint32_t mac_dest = arpcache_lookup(ip_dst); // unsure about type
+
+      // if I don't find it, broadcast to all other interfaces
+      struct sr_if *cur = sr.if_list;
+      while(cur->next != NULL) 
+      {
+        if (strcmp(cur, interface)) 
+        {
+          // broadcast the ARP request
+        }
+        cur = cur->next;
+      }
+    }
+    else if (arp_opcode == arp_op_reply) 
+    {
+      // save to cache
+
+      // forward to original sender
+
+    }
+  }
+  else if(packet_type_id == ethertype_)
+  {
+    struct sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *) packet + 14;
+    
+  }
+  else
+  {
+    // invalid packet type
+    return;
+  }
+  /////////////////////////////////////////
   uint16_t expected_checksum = cksum(p_ip_header, len-14);
   uint16_t received_checksum = p_ip_header->ip_sum;
 
@@ -112,14 +155,19 @@ void sr_handlepacket(struct sr_instance* sr,
   ip_header[10] = new_checksum & 0xFF;
   ip_header[11] = (new_checksum >> 8) & 0xFF;
 
+  
+
+
   // Find out which entry in the routing table has the longest prefix match with the destination IP address.
-  sr_rt *longest_match_entry = this.routing_table;
-  sr_rt *cur = this.routing_table;
+  sr_rt *longest_match_entry = sr.routing_table;
+  sr_rt *cur = sr.routing_table;
   while(cur.next != NULL)
   {
     // 
     cur = cur.next;
   }
+  // figure out which interface to send to? idk
+
   // TODO: add case for destination net unreachable
   // TODO: add case for port unreachable
 
@@ -127,26 +175,23 @@ void sr_handlepacket(struct sr_instance* sr,
 
 /* Checks if an IP->MAC mapping is in the cache. IP is in network byte order.
    You must free the returned structure if it is not NULL. */
-  struct sr_arpentry *arpentry = sr_arpcache_lookup(&this.cache, p_ip_header->ip_dst);
+  struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr.cache, p_ip_header->ip_dst);
   if(arpentry == NULL)
   {
-    // mapping not in cache > send ARP request
+    // mapping not in cache > add to ARP request queue
+    sr_arpreq* arpreq = sr_arpcache_queuereq(&sr.cache, p_ip_header->ip_dst, packet, len, interface); // unsure
   }
   else
   {
-    uint32_t dest_ip_addr = arpentry->ip;
+    // get MAC address from arpentry and put it into packet
+    memcpy(p_ethernet_header->ether_dhost, arpentry.mac, 6);
+    
+    // use routing table to figure out what interface to send to?
+    // i think we had to do that earlier
 
+    sr_send_packet(sr, packet, len, /* interface */);
+    // free(arpentry)
   }
-
-/*
-  Check the ARP cache for the next-hop MAC address corresponding to the nexthop IP. If it's there, send it. Otherwise, send an ARP request for the next-hop IP
-  (if one hasn't been sent within the last second), and add the packet to the queue of
-  packets waiting on this ARP request. Obviously, this is a very simplified version
-  of the forwarding process, and the low-level details follow. For example, if an
-  error occurs in any of the above steps, you will have to send an ICMP message
-  back to the sender notifying them of an error. You may also get an ARP request
-  or reply, which has to interact with the ARP cache correctly.
-*/
 
 }/* end sr_ForwardPacket */
 
