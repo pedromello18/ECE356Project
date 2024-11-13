@@ -81,7 +81,7 @@ void sr_handlepacket(struct sr_instance* sr,
   // Sanity check the packet (meets minimum length and has correct checksum).
   if(len - 14 < 21)
   {
-    // invalid length > drop that shit
+    // invalid length > drop
     return;
   }
   
@@ -89,36 +89,43 @@ void sr_handlepacket(struct sr_instance* sr,
   
   // See if this is an ARP or IP packet type
   uint16_t packet_type_id = p_ethernet_header->ether_type;
-  if(packet_type_id == ethertype_arp)
+  if(packet_type_id == ethertype_arp) ///////////// ARP
   {
-    struct sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *) packet + 14;
+    sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *) packet + 14;
     unsigned short arp_opcode = p_arp_header->ar_op;
     if (arp_opcode == arp_op_request)
     {
-      uint32_t ip_dst = p_arp_header->ar_tip;
       // check my cache and respond if I find it
-      uint32_t mac_dest = arpcache_lookup(ip_dst); // unsure about type
-
-      // if I don't find it, broadcast to all other interfaces
-      struct sr_if *cur = sr.if_list;
-      while(cur->next != NULL) 
+      uint32_t ip_dest = p_arp_header->ar_tip;
+      struct sr_arpentry *entry = sr_arpcache_lookup(ip_dest); // unsure about type
+      if(entry)
       {
-        if (strcmp(cur, interface)) 
-        {
-          // broadcast the ARP request
-        }
-        cur = cur->next;
+      //   if entry:
+      //  use next_hop_ip->mac mapping in entry to send the packet
+      //  free entry
+        memcpy(p_ethernet_header->ether_dhost, entry->mac, ETHER_ADDR_LEN);
+        memcpy(p_ethernet_header->ether_shost, /* our mac address */, ETHER_ADDR_LEN);
+        free(entry);
+      }
+      else
+      {
+        // entry not found, broadcast request
+        // req = arpcache_queuereq(next_hop_ip, packet, len)
+        struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_ip_header->ip_dst, packet, len, interface);
+        handle_arpreq(arpreq);
+        free(arpreq);
       }
     }
     else if (arp_opcode == arp_op_reply) 
     {
-      // save to cache
+      // save mapping to arpcache
+      sr_arpcache_insert(sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);      
 
       // forward to original sender
 
     }
-  }
-  else if(packet_type_id == ethertype_)
+  } 
+  else if(packet_type_id == ethertype_ip) //////////// IP
   {
     struct sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *) packet + 14;
     

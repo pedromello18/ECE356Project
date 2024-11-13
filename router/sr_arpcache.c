@@ -20,7 +20,7 @@ void handle_arpreq(sr_arpreq* req) {
                 send_icmp_host_unreachable(sr, packet);
                 packet = packet->next;
             }
-            sr_arpreq_destroy(&sr->cache, req); // Destroy the ARP request after sending ICMP messages
+            sr_arpreq_destroy(&sr->cache, req);
         } 
         else {
             struct sr_if *iface = sr_get_interface(sr, req->iface);
@@ -57,7 +57,7 @@ void handle_arpreq(sr_arpreq* req) {
   See the comments in the header file for an idea of what it should look like.
 */
 void sr_arpcache_sweepreqs(struct sr_instance *sr) {
-    struct sr_arpreq *req = sr->cache.requests;
+    struct sr_arpreq* req = sr->cache.requests;
     while (req != NULL) {
         struct sr_arpreq* next_req = req->next;
         handle_arpreq(req)

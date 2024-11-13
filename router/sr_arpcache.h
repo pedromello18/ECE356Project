@@ -123,6 +123,12 @@ struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
                          unsigned int packet_len,
                          char *iface);
 
+/*
+    Written by Pedro!
+*/
+void handle_arpreq(sr_arpreq* req);
+void send_icmp_host_unreachable(sr_instance* sr, sr_packet* packet);
+
 /* This method performs two functions:
    1) Looks up this IP in the request queue. If it is found, returns a pointer
       to the sr_arpreq with this IP. Otherwise, returns NULL.
