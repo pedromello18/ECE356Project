@@ -122,7 +122,7 @@ void sr_handlepacket(struct sr_instance* sr,
           else
           {
             struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_arp_header->ar_tip, packet, len, interface);
-            handle_arpreq(arpreq);
+            handle_arpreq(sr, arpreq);
             free(arpreq);
           }
           break;
