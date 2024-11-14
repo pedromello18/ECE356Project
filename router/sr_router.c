@@ -236,7 +236,7 @@ void sr_handlepacket(struct sr_instance* sr,
   else
   {
     printf("Invalid packet type > packet dropped.\n");
-    printf("packet type: %d", packet_type_id);
+    printf("Packet type: 0x%h", packet_type_id);
     return;
   }
   
