@@ -79,7 +79,8 @@ void sr_handlepacket(struct sr_instance* sr,
   assert(interface);
 
   printf("*** -> Received packet of length %d \n",len);
-  for(int i=0; i<len; i++)
+  int i;
+  for(i=0; i<len; i++)
   {
     printf("%x ", *(packet+i));
   }
