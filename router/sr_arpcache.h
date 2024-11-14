@@ -128,6 +128,8 @@ struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
 */
 void handle_arpreq(struct sr_arpreq* req);
 void send_icmp_host_unreachable(struct sr_instance* sr, struct sr_packet* packet);
+void send_icmp_net_unreachable(struct sr_instance* sr, struct sr_packet* packet);
+void send_icmp_port_unreachable(struct sr_instance* sr, struct sr_packet* packet);
 
 /* This method performs two functions:
    1) Looks up this IP in the request queue. If it is found, returns a pointer

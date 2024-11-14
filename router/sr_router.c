@@ -88,7 +88,7 @@ void sr_handlepacket(struct sr_instance* sr,
   }
   
   /* See if this is an ARP or IP packet type */
-  sr_ethernet_hdr_t *p_ethernet_header = (struct sr_ethernet_hdr_t *)packet;
+  sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)packet;
   uint16_t packet_type_id = p_ethernet_header->ether_type;
   if(packet_type_id == ethertype_arp) /* ARP */
   {
@@ -96,41 +96,63 @@ void sr_handlepacket(struct sr_instance* sr,
     unsigned short arp_opcode = p_arp_header->ar_op;
     if (arp_opcode == arp_op_request)
     {
-      /* check my cache and respond if I find it */
-      uint32_t ip_dest = p_arp_header->ar_tip;
-      struct sr_arpentry *entry = sr_arpcache_lookup(sr->cache, ip_dest); 
-      if(entry)
-      {
       /*
-      if entry:
-      use next_hop_ip->mac mapping in entry to send the packet
-      free entry
-      */   
-        memcpy(p_ethernet_header->ether_dhost, entry->mac, ETHER_ADDR_LEN);
-        memcpy(p_ethernet_header->ether_shost, /* our mac address */, ETHER_ADDR_LEN);
-        free(entry);
-      }
-      else
+      In the case of an ARP request, you should only send an ARP reply 
+      if the target IP address is one of your router's IP addresses.
+      */
+
+      uint32_t ip_dest = p_arp_header->ar_tip;
+
+      struct sr_if *cur = sr->if_list;
+      while(cur)
       {
-        /*
-        entry not found, broadcast request
-        req = arpcache_queuereq(next_hop_ip, packet, len)
-        */
-        struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_arp_header->ar_tip, packet, len, interface);
-        handle_arpreq(arpreq);
-        free(arpreq);
+        if(cur->ip == ip_dest)
+        {
+          struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, ip_dest); 
+          if(arpentry)
+          {
+            memset(p_arp_header->ar_op, arp_op_reply, sizeof(arp_op_reply));
+            arpentry->mac /* where tf do we put this ? */   
+            memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
+            memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
+            /* todo: send  the thing */
+            free(entry);
+          }
+          else
+          {
+            struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_arp_header->ar_tip, packet, len, interface);
+            handle_arpreq(arpreq);
+            free(arpreq);
+          }
+          break;
+        }
+        cur = cur->next;
       }
     }
     else if (arp_opcode == arp_op_reply) 
     {
-      /* Cache the entry if the target IP address is one of your router's IP addresses*/
-      if(idk)
+      /* 
+      In the case of an ARP reply, you should only cache the entry 
+      if the target IP address is one of your router's IP addresses. 
+      */
+      bool forward = true;
+      struct sr_if *cur = sr->if_list;
+      while(cur)
       {
-        sr_arpcache_insert(sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);      
+        if(p_arp_header->ar_tip == cur->ip)
+        {
+          sr_arpcache_insert(sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);      
+          forward = false;
+          break;
+        }
+        cur = cur->next;
       }
 
-      /* forward to original sender */
-
+      if(forward)
+      {
+       char* iface = best_prefix(sr, ip_dest);
+       sr_send_packet(sr, packet, len, iface);
+      }
     }
   } 
   else if(packet_type_id == ethertype_ip) /* IP */
@@ -173,11 +195,41 @@ void sr_handlepacket(struct sr_instance* sr,
     */
 
 
-    /* TODO: add case for destination net unreachable */
-    /* TODO: add case for port unreachable */
+    /* TODO: add case for destination net unreachable -> see send_icmp_net_unreachable in sr_arpchace */
+    /* TODO: add case for port unreachable -> see send_icmp_port_unreachable in sr_arpcache */
     /* Get Destination IP using ARP */
-
-
+    if (p_ip_header->ip_p == ip_protocol_icmp)
+    {
+        sr_icmp_hdr_t *icmp_hdr = (sr_icmp_hdr_t *)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+        if (icmp_hdr->icmp_type == 8 && icmp_hdr->icmp_code == 0) /* Echo Request */
+        {
+            struct sr_if *iface = sr->if_list;
+            int is_for_us = 0;
+            while (iface != NULL) {
+                if (iface->ip == p_ip_header->ip_dst) {
+                    is_for_us = 1;
+                    break;
+                }
+                iface = iface->next;
+            }
+            if (is_for_us) {
+                icmp_hdr->icmp_type = 0;
+                icmp_hdr->icmp_code = 0;
+                icmp_hdr->icmp_sum = 0;
+                icmp_hdr->icmp_sum = cksum(icmp_hdr, ntohs(p_ip_header->ip_len) - sizeof(sr_ip_hdr_t));
+                uint32_t temp_ip = p_ip_header->ip_src;
+                p_ip_header->ip_src = p_ip_header->ip_dst;
+                p_ip_header->ip_dst = temp_ip;
+                sr_ethernet_hdr_t *eth_hdr = (sr_ethernet_hdr_t *)packet;
+                uint8_t temp_mac[ETHER_ADDR_LEN];
+                memcpy(temp_mac, eth_hdr->ether_shost, ETHER_ADDR_LEN);
+                memcpy(eth_hdr->ether_shost, eth_hdr->ether_dhost, ETHER_ADDR_LEN);
+                memcpy(eth_hdr->ether_dhost, temp_mac, ETHER_ADDR_LEN);
+                sr_send_packet(sr, packet, len, interface);
+                return;
+            }
+        }
+    }
 
   }
   else
@@ -188,11 +240,24 @@ void sr_handlepacket(struct sr_instance* sr,
   
 }/* end sr_handlePacket */
 
-char* best_prefix(struct sr_instance *sr, sr_ip_hdr_t *ip_hdr) {
-  /* best_match = null */
-  /* best_match_mask = 0 */
-  /* for each entry in table: */
-  /*  if ((entry & entry_mask) == (packet & packet_mask)) */
-  /*    if mask is longer than best_match _mask then update best_mask */
-  /* return best_match */
+char* best_prefix(struct sr_instance *sr, uint32_t ip_hdr) {
+
+  struct sr_rt *cur = sr->routing_table;
+  char *best_match = NULL;
+  uint32_t best_match_mask = 0;
+  while (cur) {
+    uint32_t cur_mask = cur->mask.s_addr;
+    uint32_t cur_addr = cur->dest.s_addr;
+    char *cur_if = cur->interface;
+
+    if ((cur_addr & cur_mask) == (ip_hdr & cur_mask)) { /* might need fixing*/
+      if (cur_mask > best_match_mask) {
+        best_match = cur_if;
+        best_match_mask = cur_mask;
+      }
+    }
+    cur = cur->next;
+  } 
+  return best_match;
+  
 }
