@@ -112,9 +112,10 @@ void sr_handlepacket(struct sr_instance* sr,
           if(arpentry)
           {
             memset(p_arp_header->ar_op, arp_op_reply, sizeof(arp_op_reply));
-            arpentry->mac /* where tf do we put this ? */   
+            /* arpentry->mac /* where tf do we put this ? */   
             memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
             memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
+            /*sr_send_packet( um? );*/
             /* todo: send  the thing */
             free(entry);
           }
