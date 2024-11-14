@@ -11,7 +11,7 @@
 #include "sr_if.h"
 #include "sr_protocol.h"
 
-void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
+void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req, sr_arp_hdr_t *p_arp_hdr) {
     time_t now = time(NULL);
     if (difftime(now, req->sent) >= 1.0) {
         if (req->times_sent >= 5) {
@@ -23,13 +23,23 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             sr_arpreq_destroy(&sr->cache, req);
         } 
         else {
-            struct sr_if *iface = sr_get_interface(sr, req->iface);
+
+            /*
+             else:
+               send arp request
+               req->sent = now
+               req->times_sent++
+            */
+
+            /* struct sr_if *iface = sr_get_interface(sr, arp_hdr->ar_sha); */
+
+            /*
             if (iface) {
                 uint8_t arp_packet[sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t)];
                 
                 sr_ethernet_hdr_t *eth_hdr = (sr_ethernet_hdr_t *)arp_packet;
-                memset(eth_hdr->ether_dhost, 0xff, ETHER_ADDR_LEN);  /* Broadcast */
-                memcpy(eth_hdr->ether_shost, iface->addr, ETHER_ADDR_LEN);
+                memset(eth_hdr->ether_dhost, 0xff, ETHER_ADDR_LEN);
+                memcpy(eth_hdr->ether_shost, p_arp_hdr->ar_sha, ETHER_ADDR_LEN);
                 eth_hdr->ether_type = htons(ethertype_arp);
                 
                 sr_arp_hdr_t *arp_hdr = (sr_arp_hdr_t *)(arp_packet + sizeof(sr_ethernet_hdr_t));
@@ -46,6 +56,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
                 sr_send_packet(sr, arp_packet, sizeof(arp_packet), iface->name);
                 req->sent = now;
                 req->times_sent++;
+                */
             }
         }
     }

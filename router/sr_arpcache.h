@@ -126,7 +126,7 @@ struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
 /*
     Written by Pedro!
 */
-void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req);
+void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req, sr_arp_hdr_t *p_arp_hdr);
 void send_icmp_host_unreachable(struct sr_instance* sr, struct sr_packet* packet);
 void send_icmp_net_unreachable(struct sr_instance* sr, struct sr_packet* packet);
 void send_icmp_port_unreachable(struct sr_instance* sr, struct sr_packet* packet);
