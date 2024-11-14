@@ -13,6 +13,8 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
+#include <stdlib.h>
 
 
 #include "sr_if.h"
@@ -78,128 +80,119 @@ void sr_handlepacket(struct sr_instance* sr,
 
   printf("*** -> Received packet of length %d \n",len);
 
-  // Sanity check the packet (meets minimum length and has correct checksum).
+  /* Sanity check the packet (meets minimum length and has correct checksum). */
   if(len - 14 < 21)
   {
-    // invalid length > drop
+    printf("Invalid length > packet dropped.");
     return;
   }
   
-  struct sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)packet;
-  
-  // See if this is an ARP or IP packet type
+  /* See if this is an ARP or IP packet type */
+  sr_ethernet_hdr_t *p_ethernet_header = (struct sr_ethernet_hdr_t *)packet;
   uint16_t packet_type_id = p_ethernet_header->ether_type;
-  if(packet_type_id == ethertype_arp) ///////////// ARP
+  if(packet_type_id == ethertype_arp) /* ARP */
   {
     sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *) packet + 14;
     unsigned short arp_opcode = p_arp_header->ar_op;
     if (arp_opcode == arp_op_request)
     {
-      // check my cache and respond if I find it
+      /* check my cache and respond if I find it */
       uint32_t ip_dest = p_arp_header->ar_tip;
-      struct sr_arpentry *entry = sr_arpcache_lookup(ip_dest); // unsure about type
+      struct sr_arpentry *entry = sr_arpcache_lookup(sr->cache, ip_dest); 
       if(entry)
       {
-      //   if entry:
-      //  use next_hop_ip->mac mapping in entry to send the packet
-      //  free entry
+      /*
+      if entry:
+      use next_hop_ip->mac mapping in entry to send the packet
+      free entry
+      */   
         memcpy(p_ethernet_header->ether_dhost, entry->mac, ETHER_ADDR_LEN);
         memcpy(p_ethernet_header->ether_shost, /* our mac address */, ETHER_ADDR_LEN);
         free(entry);
       }
       else
       {
-        // entry not found, broadcast request
-        // req = arpcache_queuereq(next_hop_ip, packet, len)
-        struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_ip_header->ip_dst, packet, len, interface);
+        /*
+        entry not found, broadcast request
+        req = arpcache_queuereq(next_hop_ip, packet, len)
+        */
+        struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_arp_header->ar_tip, packet, len, interface);
         handle_arpreq(arpreq);
         free(arpreq);
       }
     }
     else if (arp_opcode == arp_op_reply) 
     {
-      // save mapping to arpcache
-      sr_arpcache_insert(sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);      
+      /* Cache the entry if the target IP address is one of your router's IP addresses*/
+      if(idk)
+      {
+        sr_arpcache_insert(sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);      
+      }
 
-      // forward to original sender
+      /* forward to original sender */
 
     }
   } 
-  else if(packet_type_id == ethertype_ip) //////////// IP
+  else if(packet_type_id == ethertype_ip) /* IP */
   {
-    struct sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *) packet + 14;
+    sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *) packet + 14;
     
+    uint16_t expected_checksum = cksum(p_ip_header, p_ip_header->ip_len);
+    uint16_t received_checksum = p_ip_header->ip_sum;
+    if(received_checksum != expected_checksum)
+    {
+      printf("Checksum detected an error > packet dropped.");
+      return;
+    }
+
+    /* Decrement the TTL by 1, and recompute the packet checksum over the modified header. */
+    uint8_t received_ttl = p_ip_header->ip_ttl
+    if(received_ttl == 0)
+    {
+      /* time exceeded > send ICMP message */
+      sr_icmp_hdr_t icmp_hdr;
+      icmp_hdr.icmp_type = 11;
+      icmp_hdr.icmp_code = 0;
+      icmp_hdr.icmp_sum = 0;
+      icmp_hdr.icmp_sum = cksum(&icmp_hdr, 32);
+      sr_send_packet(/* add arguments in here */)
+    }
+    p_ip_header->ip_ttl = received_ttl - 1;
+    p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_len); 
+
+    /* Find out which entry in the routing table has the longest prefix match with the destination IP address. */
+
+    /*
+    Check the ARP cache for the next-hop MAC address corresponding to the nexthop IP. If it's there, send it. Otherwise, send an ARP request for the next-hop IP
+    (if one hasn't been sent within the last second), and add the packet to the queue of
+    packets waiting on this ARP request. Obviously, this is a very simplified version
+    of the forwarding process, and the low-level details follow. For example, if an
+    error occurs in any of the above steps, you will have to send an ICMP message
+    back to the sender notifying them of an error. You may also get an ARP request
+    or reply, which has to interact with the ARP cache correctly. 
+    */
+
+
+    /* TODO: add case for destination net unreachable */
+    /* TODO: add case for port unreachable */
+    /* Get Destination IP using ARP */
+
+
+
   }
   else
   {
-    // invalid packet type
+    printf("Invalid packet type > packet dropped.");
     return;
   }
-  /////////////////////////////////////////
-  uint16_t expected_checksum = cksum(p_ip_header, len-14);
-  uint16_t received_checksum = p_ip_header->ip_sum;
-
-  if(received_checksum != expected_checksum)
-  {
-    // error detected > drop that shit
-    return;
-  }
-
-  // Decrement the TTL by 1, and recompute the packet checksum over the modified header.
-  uint8_t received_ttl = p_ip_header->ip_ttl
-  if(received_ttl == 0)
-  {
-    // time exceeded > send ICMP message
-    struct sr_icmp_hdr_t icmp_hdr;
-    icmp_hdr.icmp_type = 11;
-    icmp_hdr.icmp_code = 0;
-    icmp_hdr.icmp_sum = 0;
-    icmp_hdr.icmp_sum = cksum(&icmp_hdr, 32);
-    sr_send_packet(/* add arguments in here */)
-  }
-  ip_header[8] = received_ttl - 1;
-  uint16_t new_checksum = cksum(ip_header, len - 14); 
-  ip_header[10] = new_checksum & 0xFF;
-  ip_header[11] = (new_checksum >> 8) & 0xFF;
-
   
+}/* end sr_handlePacket */
 
-
-  // Find out which entry in the routing table has the longest prefix match with the destination IP address.
-  sr_rt *longest_match_entry = sr.routing_table;
-  sr_rt *cur = sr.routing_table;
-  while(cur.next != NULL)
-  {
-    // 
-    cur = cur.next;
-  }
-  // figure out which interface to send to? idk
-
-  // TODO: add case for destination net unreachable
-  // TODO: add case for port unreachable
-
-  // Get Destination IP using ARP
-
-/* Checks if an IP->MAC mapping is in the cache. IP is in network byte order.
-   You must free the returned structure if it is not NULL. */
-  struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr.cache, p_ip_header->ip_dst);
-  if(arpentry == NULL)
-  {
-    // mapping not in cache > add to ARP request queue
-    sr_arpreq* arpreq = sr_arpcache_queuereq(&sr.cache, p_ip_header->ip_dst, packet, len, interface); // unsure
-  }
-  else
-  {
-    // get MAC address from arpentry and put it into packet
-    memcpy(p_ethernet_header->ether_dhost, arpentry.mac, 6);
-    
-    // use routing table to figure out what interface to send to?
-    // i think we had to do that earlier
-
-    sr_send_packet(sr, packet, len, /* interface */);
-    // free(arpentry)
-  }
-
-}/* end sr_ForwardPacket */
-
-
+char* best_prefix(struct sr_instance *sr, sr_ip_hdr_t *ip_hdr) {
+  /* best_match = null */
+  /* best_match_mask = 0 */
+  /* for each entry in table: */
+  /*  if ((entry & entry_mask) == (packet & packet_mask)) */
+  /*    if mask is longer than best_match _mask then update best_mask */
+  /* return best_match */
+}
