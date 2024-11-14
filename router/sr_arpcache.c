@@ -28,7 +28,7 @@ void handle_arpreq(sr_arpreq* req) {
                 uint8_t arp_packet[sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t)];
                 
                 sr_ethernet_hdr_t *eth_hdr = (sr_ethernet_hdr_t *)arp_packet;
-                memset(eth_hdr->ether_dhost, 0xff, ETHER_ADDR_LEN);  // Broadcast
+                memset(eth_hdr->ether_dhost, 0xff, ETHER_ADDR_LEN);  /* Broadcast */
                 memcpy(eth_hdr->ether_shost, iface->addr, ETHER_ADDR_LEN);
                 eth_hdr->ether_type = htons(ethertype_arp);
                 

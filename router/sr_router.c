@@ -94,14 +94,14 @@ void sr_handlepacket(struct sr_instance* sr,
   {
     sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *) packet + 14;
     unsigned short arp_opcode = p_arp_header->ar_op;
+    uint32_t ip_dest = p_arp_header->ar_tip;
+
     if (arp_opcode == arp_op_request)
     {
       /*
       In the case of an ARP request, you should only send an ARP reply 
       if the target IP address is one of your router's IP addresses.
       */
-
-      uint32_t ip_dest = p_arp_header->ar_tip;
 
       struct sr_if *cur = sr->if_list;
       while(cur)
@@ -111,13 +111,13 @@ void sr_handlepacket(struct sr_instance* sr,
           struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, ip_dest); 
           if(arpentry)
           {
-            memset(p_arp_header->ar_op, arp_op_reply, sizeof(arp_op_reply));
+            memset(&p_arp_header->ar_op, arp_op_reply, sizeof(arp_op_reply));
             /* arpentry->mac /* where tf do we put this ? */   
             memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
             memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
             /*sr_send_packet( um? );*/
             /* todo: send  the thing */
-            free(entry);
+            free(arpentry);
           }
           else
           {
@@ -136,14 +136,14 @@ void sr_handlepacket(struct sr_instance* sr,
       In the case of an ARP reply, you should only cache the entry 
       if the target IP address is one of your router's IP addresses. 
       */
-      bool forward = true;
+      uint8_t forward = 1;
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
         if(p_arp_header->ar_tip == cur->ip)
         {
-          sr_arpcache_insert(sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);      
-          forward = false;
+          sr_arpcache_insert(&sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);      
+          forward = 0;
           break;
         }
         cur = cur->next;
@@ -169,8 +169,8 @@ void sr_handlepacket(struct sr_instance* sr,
     }
 
     /* Decrement the TTL by 1, and recompute the packet checksum over the modified header. */
-    uint8_t received_ttl = p_ip_header->ip_ttl
-    if(received_ttl == 0)
+    uint8_t received_ttl = p_ip_header->ip_ttl;
+    if (received_ttl == 0)
     {
       /* time exceeded > send ICMP message */
       sr_icmp_hdr_t icmp_hdr;
@@ -178,7 +178,7 @@ void sr_handlepacket(struct sr_instance* sr,
       icmp_hdr.icmp_code = 0;
       icmp_hdr.icmp_sum = 0;
       icmp_hdr.icmp_sum = cksum(&icmp_hdr, 32);
-      sr_send_packet(/* add arguments in here */)
+      /*sr_send_packet(/* add arguments in here )*/
     }
     p_ip_header->ip_ttl = received_ttl - 1;
     p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_len); 
@@ -241,10 +241,10 @@ void sr_handlepacket(struct sr_instance* sr,
   
 }/* end sr_handlePacket */
 
-char* best_prefix(struct sr_instance *sr, uint32_t ip_hdr) {
+char *best_prefix(struct sr_instance *sr, uint32_t ip_hdr) {
 
   struct sr_rt *cur = sr->routing_table;
-  char *best_match = NULL;
+  char best_match[sr_IFACE_NAMELEN];
   uint32_t best_match_mask = 0;
   while (cur) {
     uint32_t cur_mask = cur->mask.s_addr;
@@ -253,12 +253,11 @@ char* best_prefix(struct sr_instance *sr, uint32_t ip_hdr) {
 
     if ((cur_addr & cur_mask) == (ip_hdr & cur_mask)) { /* might need fixing*/
       if (cur_mask > best_match_mask) {
-        best_match = cur_if;
+        memcpy(best_match, cur_if, sr_IFACE_NAMELEN);
         best_match_mask = cur_mask;
       }
     }
     cur = cur->next;
   } 
   return best_match;
-  
 }
