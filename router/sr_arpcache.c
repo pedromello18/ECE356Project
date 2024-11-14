@@ -23,6 +23,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req, sr_arp_hdr_t *
             sr_arpreq_destroy(&sr->cache, req);
         } 
         else {
+            /* TODO: fix this part */
 
             /*
              else:
@@ -71,6 +72,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
     struct sr_arpreq* req = sr->cache.requests;
     while (req != NULL) {
         struct sr_arpreq* next_req = req->next;
+        /* TODO: fix handle_arpreq arguments */
         /* handle_arpreq(sr, req, ); */
         req = next_req;
     }
