@@ -57,10 +57,10 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req, sr_arp_hdr_t *
                 req->sent = now;
                 req->times_sent++;
                 */
-            }
         }
     }
-}
+ }
+
 
 /* 
   This function gets called every second. For each request sent out, we keep
