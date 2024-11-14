@@ -118,7 +118,7 @@ void sr_handlepacket(struct sr_instance* sr,
           if(arpentry)
           {
             memset(&p_arp_header->ar_op, arp_op_reply, sizeof(arp_op_reply));
-            /* arpentry->mac /* where tf do we put this ? */   
+            /* arpentry->mac where tf do we put this ? */   
             memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
             memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
             /*sr_send_packet( um? );*/
@@ -184,7 +184,7 @@ void sr_handlepacket(struct sr_instance* sr,
       icmp_hdr.icmp_code = 0;
       icmp_hdr.icmp_sum = 0;
       icmp_hdr.icmp_sum = cksum(&icmp_hdr, 32);
-      /*sr_send_packet(/* add arguments in here )*/
+      /*sr_send_packet(add arguments in here)*/
     }
     p_ip_header->ip_ttl = received_ttl - 1;
     p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_len); 
