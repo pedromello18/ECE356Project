@@ -79,7 +79,11 @@ void sr_handlepacket(struct sr_instance* sr,
   assert(interface);
 
   printf("*** -> Received packet of length %d \n",len);
-  printf("%x", *packet);
+  for(int i=0; i<len; i++)
+  {
+    printf("%x ", *(packet+i));
+  }
+  printf("\n");
 
   /* Sanity check the packet (meets minimum length and has correct checksum). */
   if(len - 14 < 21)
