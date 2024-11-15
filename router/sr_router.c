@@ -168,14 +168,13 @@ void sr_handlepacket(struct sr_instance* sr,
     }
 
     /* Decrement the TTL by 1, and recompute the packet checksum over the modified header. */
-    uint8_t received_ttl = p_ip_header->ip_ttl;
-    if (received_ttl == 0)
+    p_ip_header->ip_ttl--;
+    if (p_ip_header->ip_ttl == 0)
     {
       printf("Time exceeded. \n");
       send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_TIME_EXCEEDED, ICMP_CODE_TIME_EXCEEDED, interface); /*Per ed post? Don't know*/
     }
-    p_ip_header->ip_ttl = received_ttl - 1;
-    p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_len); 
+    /*p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_len); Dont think its necessary*/ 
 
     /* Check if packet is for router */
     struct sr_if *cur = sr->if_list;
@@ -212,6 +211,10 @@ void sr_handlepacket(struct sr_instance* sr,
       }
       printf("Packet isn't for me. I will forward her!\n");
       char *iface_out_name = best_prefix(sr, p_ip_header->ip_dst);
+      if (iface_out_name == NULL)
+      {
+        send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_DESTINATION_NET_UNREACHABLE, interface);
+      }
       struct sr_if *cur_if = sr->if_list;
       struct sr_if *iface_out;
       while(cur_if)
