@@ -209,7 +209,8 @@ void sr_handlepacket(struct sr_instance* sr,
       }
       printf("Packet isn't for me. I will forward her!\n");
       char *iface_out_name = best_prefix(sr, p_ip_header->ip_dst);
-      if(!iface_out_name)
+      printf("Interface: %s", iface_out_name);
+      if(iface_out_name == NULL)
       {
         printf("best_prefix returned a null pointer.\n");
       }
@@ -278,6 +279,6 @@ char *best_prefix(struct sr_instance *sr, uint32_t ip_addr) {
     }
     cur_rt = cur_rt->next;
   }
-
+  
   return best_match;
 }
