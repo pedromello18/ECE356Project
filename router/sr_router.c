@@ -149,7 +149,8 @@ void sr_handlepacket(struct sr_instance* sr,
     
     uint16_t received_checksum = p_ip_header->ip_sum;
     p_ip_header->ip_sum = 0;
-    uint16_t expected_checksum = cksum(p_ip_header, p_ip_header->ip_len*4); /*Convert words to bytes*/
+    uint16_t expected_checksum = cksum(p_ip_header, p_ip_header->ip_hl * 4); /*Convert words to bytes*/
+    p_ip_header->ip_sum = received_checksum;
     
     if(received_checksum != htons(expected_checksum))
     {
