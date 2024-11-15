@@ -174,7 +174,7 @@ void sr_handlepacket(struct sr_instance* sr,
     p_ip_header->ip_ttl = received_ttl - 1;
     p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_len); 
 
-    /*Check if packet is for router*/
+    /* Check if packet is for router */
     struct sr_if *cur = sr->if_list;
       while(cur)
       {
@@ -208,7 +208,17 @@ void sr_handlepacket(struct sr_instance* sr,
         cur = cur->next;
       }
     printf("Packet isn't for me. I will forward her!\n");
-    char *iface_out = best_prefix(sr, p_ip_header->ip_dst);
+    char *iface_out_name = best_prefix(sr, p_ip_header->ip_dst);
+    struct sr_if *cur = sr->if_list;
+    struct sr_if *iface_out;
+    while(cur)
+    {
+      if (strcmp(iface_out_name, cur->name)) {
+        iface_out = cur;
+        break;
+      }
+      cur = cur->next;
+    }
     struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, iface_out->ip);
     if (arpentry)
     {
@@ -248,7 +258,7 @@ void sr_handlepacket(struct sr_instance* sr,
 
 char *best_prefix(struct sr_instance *sr, uint32_t ip_addr) {
   struct sr_rt *cur_rt = sr->routing_table;
-  char *best_match = NULL;  // Initialize to NULL
+  char *best_match = NULL;  
   uint32_t best_match_mask = 0;
 
   while (cur_rt) {
