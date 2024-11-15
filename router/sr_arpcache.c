@@ -52,7 +52,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             /* link layer */
             memset(p_ethernet_header->ether_dhost, ARP_BROADCAST_ADDRESS, ETHER_ADDR_LEN);
             memcpy(p_ethernet_header->ether_shost, mac_addr, ETHER_ADDR_LEN);
-            p_ethernet_header->ether_type = ethertype_arp;
+            p_ethernet_header->ether_type = htons(ethertype_arp);
 
             /* arp header */
             p_arp_header->ar_hrd = htons(arp_hrd_ethernet);
@@ -61,22 +61,14 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             p_arp_header->ar_pln = sizeof(uint32_t); /* hopefully? */
             p_arp_header->ar_op = htons(arp_op_request);
             memcpy(p_arp_header->ar_sha, mac_addr, ETHER_ADDR_LEN);
-            p_arp_header->ar_sip = htonl(ip_addr); 
+            p_arp_header->ar_sip = ip_addr; 
             memset(p_arp_header->ar_tha, 0, ETHER_ADDR_LEN);
-            p_arp_header->ar_tip = htonl(req->ip);
-            struct in_addr temp_ip;
-            temp_ip.s_addr = req->ip;
-            printf("req->ip: \n");
-            print_addr_ip(temp_ip);
-            temp_ip.s_addr = ip_addr;
-            printf("ip_addr: \n");
-            print_addr_ip(temp_ip);
-            
-
+            p_arp_header->ar_tip = req->ip;            
 
             sr_send_packet(sr, packet_to_send, len, iface_name);
             printf("ARP request sent!\n");
             free(packet_to_send);
+            
             req->sent = now;
             req->times_sent++;
         }
