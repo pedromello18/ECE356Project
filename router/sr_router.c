@@ -129,7 +129,13 @@ void sr_handlepacket(struct sr_instance* sr,
         if(p_arp_header->ar_tip == cur->ip)
         {
           printf("Inserting entry into our arpcache.\n");
-          sr_arpcache_insert(&sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);      
+          struct sr_arpreq *arpreq = sr_arpcache_insert(&sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);   
+          if(arpreq)
+          {
+            /* Pedro please :) */
+            /* send all packets on the req->packets linked list */
+            sr_arpreq_destroy(&sr->cache, arpreq);
+          }   
           break;
         }
         cur = cur->next;
@@ -198,9 +204,9 @@ void sr_handlepacket(struct sr_instance* sr,
         cur = cur->next;
       }
     printf("Packet isn't for me. I will forward her!");
-    uint32_t ip_dst = best_prefix(sr, p_ip_header->ip_dst);
+    uint32_t best_prefix(struct sr_instance *sr, uint32_t ip_addr);
 
-    sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, ip_dst);
+    struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, ip_dst);
     if (arpentry)
     {
       printf("ok so she was in our arpcache. Should find her in interface list...\n");
@@ -211,9 +217,10 @@ void sr_handlepacket(struct sr_instance* sr,
         if(memcmp(arpentry->mac, cur->addr, ETHER_ADDR_LEN) == 0)
         {
           printf("Found address from arpentry in interface list.\n");
-          uint8_t *temp_ether_dhost = p_ethernet_header->ether_dhost;
-          p_ethernet_header->ether_dhost = p_ethernet_header->ether_shost;
-          p_ethernet_header->ether_shost = temp_ether_dhost;
+          uint8_t[ETHER_ADDR_LEN] temp_ether_dhost;
+          memcpy(temp_ether_dhost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
+          memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
+          memcpy(p_ethernet_header->ether_shost, temp_ether_dhost, ETHER_ADDR_LEN);
           sr_send_packet(sr, packet_to_send, len, cur->name);
           break;
         }
@@ -232,7 +239,6 @@ void sr_handlepacket(struct sr_instance* sr,
     (if one hasn't been sent within the last second), and add the packet to the queue of
     packets waiting on this ARP request. 
     */
-
 
     }
   }
