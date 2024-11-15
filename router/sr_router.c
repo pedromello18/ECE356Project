@@ -204,7 +204,7 @@ void sr_handlepacket(struct sr_instance* sr,
         cur = cur->next;
       }
     printf("Packet isn't for me. I will forward her!");
-    uint32_t ip_dst = best_prefix(struct sr_instance *sr, uint32_t ip_addr);
+    uint32_t ip_dst = best_prefix(sr, p_ip_header->ip_dst);
     struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, ip_dst);
     if (arpentry)
     {
