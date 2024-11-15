@@ -147,7 +147,7 @@ void sr_handlepacket(struct sr_instance* sr,
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
     printf("Received IP packet. \n");
     
-    uint16_t expected_checksum = cksum(p_ip_header, p_ip_header->ip_len);
+    uint16_t expected_checksum = cksum(p_ip_header, len - sizeof(sr_ethernet_hdr_t));
     uint16_t received_checksum = p_ip_header->ip_sum;
     if(received_checksum != htons(expected_checksum))
     {
