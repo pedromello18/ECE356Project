@@ -96,12 +96,12 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 */
 void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int len, uint8_t icmp_type, uint8_t icmp_code, char* interface)
 {
-    /*get ip address of active interface*/
+    /*get ip address of recepient interface*/
     uint32_t ip_addr;
     struct sr_if *cur = sr->if_list;
     while(cur)
     {
-        if (strcmp(cur->name, interface))
+        if (strcmp(cur->name, interface) == 0)
         {
             ip_addr = cur->ip;
         }
@@ -135,12 +135,12 @@ void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int le
 
 void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, uint8_t icmp_type, uint8_t icmp_code, char* interface)
 {
-    /*get ip address of active interface*/
+    /*get ip address of recepient interface*/
     uint32_t ip_addr;
     struct sr_if *cur = sr->if_list;
     while(cur)
     {
-        if (strcmp(cur->name, interface))
+        if (strcmp(cur->name, interface) == 0)
         {
             ip_addr = cur->ip;
         }
