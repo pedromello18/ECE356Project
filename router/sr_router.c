@@ -89,7 +89,7 @@ void sr_handlepacket(struct sr_instance* sr,
   /* Sanity check the packet (meets minimum length and has correct checksum). */
   if(len < sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t)) /*minimum length of packet we can receive, 34 bytes*/
   {
-    printf("Invalid length > packet dropped.");
+    printf("Invalid length > packet dropped. \n");
     return;
   }
 
@@ -100,7 +100,7 @@ void sr_handlepacket(struct sr_instance* sr,
   uint16_t packet_type_id = p_ethernet_header->ether_type;
   if(packet_type_id == htons(ethertype_arp)) /* ARP */
   {
-    printf("Received ARP packet.");
+    printf("Received ARP packet. \n");
     sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
     unsigned short arp_opcode = p_arp_header->ar_op;
     uint32_t ip_dest = p_arp_header->ar_tip;
@@ -145,13 +145,13 @@ void sr_handlepacket(struct sr_instance* sr,
   else if(packet_type_id == htons(ethertype_ip)) /* IP */
   {
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
-    printf("Received IP packet.");
+    printf("Received IP packet. \n");
     
     uint16_t expected_checksum = cksum(p_ip_header, p_ip_header->ip_len);
     uint16_t received_checksum = p_ip_header->ip_sum;
     if(received_checksum != htons(expected_checksum))
     {
-      printf("Checksum detected an error > packet dropped.");
+      printf("Checksum detected an error > packet dropped. \n");
       return;
     }
 
