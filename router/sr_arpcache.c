@@ -97,13 +97,15 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int len, uint8_t icmp_type, uint8_t icmp_code, char* interface)
 {
     /*get ip address of active interface*/
+    uint32_t ip_addr;
     struct sr_if *cur = sr->if_list;
     while(cur)
     {
         if (strcmp(cur->name, interface))
         {
-            uint32_t ip_addr = cur->ip;
+            ip_addr = cur->ip;
         }
+        cur = cur->next
     }
     /* icmp header */
     sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
@@ -134,13 +136,15 @@ void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int le
 void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, uint8_t icmp_type, uint8_t icmp_code, char* interface)
 {
     /*get ip address of active interface*/
+    uint32_t ip_addr;
     struct sr_if *cur = sr->if_list;
     while(cur)
     {
         if (strcmp(cur->name, interface))
         {
-            uint32_t ip_addr = cur->ip;
+            ip_addr = cur->ip;
         }
+        cur = cur->next;
     }
     sr_ip_hdr_t *temp_ip_header = (sr_ip_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t));
     sr_ethernet_hdr_t *temp_ethernet_header = (sr_ethernet_hdr_t *)(p_packet);
