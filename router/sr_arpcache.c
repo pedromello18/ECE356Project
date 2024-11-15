@@ -33,20 +33,22 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
                 sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
 
                 /* link layer */
-                p_ethernet_header->ether_dhost = ARP_BROADCAST_ADDRESS;
+                for (int i = 0; i < ETHER_ADDR_LEN; i++) {
+                    p_ethernet_header->ether_dhost[i] = 0xFF;
+                }
                 memcpy(p_ethernet_header->ether_shost, cur->addr, ETHER_ADDR_LEN);
                 p_ethernet_header->ether_type = ethertype_arp;
 
                 /* arp header */
-                p_arp_hdr->ar_hrd = htons(arp_hrd_ethernet);
-                p_arp_hdr->ar_pro = htons(ethertype_ip); /* maybe? */
-                p_arp_hdr->ar_hln = ETHER_ADDR_LEN;
-                p_arp_hdr->ar_pln = sizeof(uint32_t); /* hopefully? */
-                p_arp_hdr->ar_op = htons(arp_op_request);
-                memcpy(p_arp_hdr->ar_sha, cur->addr, ETHER_ADDR_LEN);
-                p_arp_hdr->ar_sip = cur->ip;
-                memset(p_arp_hdr->ar_tha, ARP_BROADCAST_ADDRESS, ETHER_ADDR_LEN);
-                p_arp_hdr->ar_tip = req->ip;
+                p_arp_header->ar_hrd = htons(arp_hrd_ethernet);
+                p_arp_header->ar_pro = htons(ethertype_ip); /* maybe? */
+                p_arp_header->ar_hln = ETHER_ADDR_LEN;
+                p_arp_header->ar_pln = sizeof(uint32_t); /* hopefully? */
+                p_arp_header->ar_op = htons(arp_op_request);
+                memcpy(p_arp_header->ar_sha, cur->addr, ETHER_ADDR_LEN);
+                p_arp_header->ar_sip = cur->ip;
+                memset(p_arp_header->ar_tha, ARP_BROADCAST_ADDRESS, ETHER_ADDR_LEN);
+                p_arp_header->ar_tip = req->ip;
 
                 sr_send_packet(sr, packet_to_send, len, cur->name);
                 req->sent = now;
