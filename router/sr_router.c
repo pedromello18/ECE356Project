@@ -135,7 +135,8 @@ void sr_handlepacket(struct sr_instance* sr,
             struct sr_packet *queued_packet = arpreq->packets;
             while (queued_packet)
             {
-              print_hdrs(queued_packet->buf, queued_packet->len);
+              printf("Pckt Len: %d", queued_packet->len);
+              /*print_hdrs(queued_packet->buf, queued_packet->len);*/
               sr_send_packet(sr, queued_packet->buf, queued_packet->len, queued_packet->iface);
               queued_packet = queued_packet->next;
             }
