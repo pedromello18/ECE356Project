@@ -16,7 +16,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
     if (difftime(now, req->sent) >= 1.0) {
         printf("Can resend request! \n");
         if (req->times_sent >= 5) {
-            printf("Request sent at least 5 times.           \n");
+            printf("Request sent at least 5 times.\n");
             struct sr_packet *packet = req->packets;
             while(packet != NULL) {
                 printf("Sending Host Unreachable ICMP Message.\n");
@@ -27,7 +27,11 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
         } 
         else {
             uint32_t ip_addr = best_prefix(sr, req->ip);
+            struct in_addr temp_ip;
+            temp_ip.s_addr = ip_addr;
+            print_addr_ip(temp_ip);
             unsigned char mac_addr[ETHER_ADDR_LEN];
+            print_addr_eth(mac_addr);
             char iface_name[sr_IFACE_NAMELEN];
             struct sr_if *cur = sr->if_list;
             
@@ -36,6 +40,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
                 if (cur->ip == ip_addr) {
                     memcpy(mac_addr, cur->addr, ETHER_ADDR_LEN);
                     memcpy(iface_name, cur->name, sr_IFACE_NAMELEN);
+                    printf("Interface: %s\n", iface_name);
                     break;
                 }
                 cur = cur->next;
