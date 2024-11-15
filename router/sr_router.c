@@ -172,21 +172,22 @@ void sr_handlepacket(struct sr_instance* sr,
           printf("Packet for router. \n");
           if(p_ip_header->ip_p == htons(ip_protocol_icmp))
           {
+            printf("ICMP Message.\n");
             sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)(p_ip_header + sizeof(sr_ip_hdr_t));
             if((p_icmp_header->icmp_type == ICMP_TYPE_ECHO_REQUEST) && (p_icmp_header->icmp_code == ICMP_CODE_ECHO_REQUEST))
             {
-              printf("Echo Reply. \n");
+              printf("Echo Reply.\n");
               send_icmp_packet(sr, packet_to_send, len, ICMP_TYPE_ECHO_REPLY, ICMP_CODE_ECHO_REPLY, interface); /* echo reply */
             }
             else
             {
-              printf("Type Unreachable. \n");
+              printf("Port Unreachable. \n");
               send_icmp_packet(sr, packet_to_send, len, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
             }
           }
           else
           {
-            printf("Type Unreachable. \n");
+            printf("Port Unreachable. \n");
             send_icmp_packet(sr, packet_to_send, len, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
           }
           return;
@@ -238,9 +239,8 @@ void sr_handlepacket(struct sr_instance* sr,
     printf("Invalid packet type > packet dropped.\n");
     printf("Packet type: 0x%x", packet_type_id);
     return;
-  }
-  
-}/* end sr_handlePacket */
+  } 
+} /* end sr_handlePacket */
 
 
 
