@@ -11,13 +11,30 @@
 #include "sr_if.h"
 #include "sr_protocol.h"
 
+/*
+   function handle_arpreq(req):
+       if difftime(now, req->sent) > 1.0
+           if req->times_sent >= 5:
+               send icmp host unreachable to source addr of all pkts waiting
+                 on this request
+               arpreq_destroy(req)
+           else:
+               send arp request
+               req->sent = now
+               req->times_sent++
+*/
+
 void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req, sr_arp_hdr_t *p_arp_hdr) {
     time_t now = time(NULL);
     if (difftime(now, req->sent) >= 1.0) {
         if (req->times_sent >= 5) {
             struct sr_packet *packet = req->packets;
             while (packet != NULL) {
-                /*send_icmp_host_unreachable(sr, packet);*/
+                
+                int icmp_len = sizeof(sr_icmp_t3_hdr_t) + htons(incoming_ip_hdr->ip_len);
+                total_size = sizeof(sr_ethernet_hdr_t)+sizeof(sr_ip_hdr_t) + icmp_len;
+                
+                send_icmp_t3_packet(sr, packet, /*len*/, ICMP_TYPE_UNREACHABLE, ICMP_CODE_DESTINATION_HOST_UNREACHABLE)
                 packet = packet->next;
             }
             sr_arpreq_destroy(&sr->cache, req);
@@ -116,7 +133,7 @@ void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int
     sr_ethernet_hdr_t *temp_ethernet_header = (sr_ethernet_hdr_t *)(p_packet);
 
     /* icmp header */
-    int icmp_len = sizeof(sr_icmp_t3_hdr_t); /*changed from married man*/
+    int icmp_len = sizeof(sr_icmp_t3_hdr_t) + htons(temp_ip_header->ip_len);
     int total_size = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + icmp_len;
     uint8_t *packet_to_send = (uint8_t *)malloc(total_size);
     
