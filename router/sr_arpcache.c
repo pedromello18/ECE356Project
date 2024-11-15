@@ -68,7 +68,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             sr_send_packet(sr, packet_to_send, len, iface_name);
             printf("ARP request sent!\n");
             free(packet_to_send);
-            
+
             req->sent = now;
             req->times_sent++;
         }
@@ -96,6 +96,15 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 */
 void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int len, uint8_t icmp_type, uint8_t icmp_code, char* interface)
 {
+    /*get ip address of active interface*/
+    struct sr_if *cur = sr->if_list;
+    while(cur)
+    {
+        if (strcmp(cur->name, interface))
+        {
+            uint32_t ip_addr = cur->ip;
+        }
+    }
     /* icmp header */
     sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
     p_icmp_header->icmp_type = icmp_type;
@@ -106,7 +115,7 @@ void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int le
     /* ip layer */
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t));
     uint32_t temp_ip = p_ip_header->ip_src;
-    memcpy(&p_ip_header->ip_src, &p_ip_header->ip_dst, sizeof(uint32_t));
+    p_ip_header->ip_src = ip_addr;
     memcpy(&p_ip_header->ip_dst, &temp_ip, sizeof(uint32_t));
     p_ip_header->ip_sum = 0;
     p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
@@ -124,6 +133,15 @@ void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int le
 
 void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, uint8_t icmp_type, uint8_t icmp_code, char* interface)
 {
+    /*get ip address of active interface*/
+    struct sr_if *cur = sr->if_list;
+    while(cur)
+    {
+        if (strcmp(cur->name, interface))
+        {
+            uint32_t ip_addr = cur->ip;
+        }
+    }
     sr_ip_hdr_t *temp_ip_header = (sr_ip_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t));
     sr_ethernet_hdr_t *temp_ethernet_header = (sr_ethernet_hdr_t *)(p_packet);
 
@@ -156,7 +174,7 @@ void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, uint8_t icmp
     p_ip_header->ip_off = htons(IP_DF);
     p_ip_header->ip_ttl = 64;
     p_ip_header->ip_p = ip_protocol_icmp;
-    p_ip_header->ip_src = temp_ip_header->ip_dst;
+    p_ip_header->ip_src = ip_addr; /*needs to have our IP*/
     p_ip_header->ip_dst = temp_ip_header->ip_src;
     p_ip_header->ip_sum = 0;
     p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
