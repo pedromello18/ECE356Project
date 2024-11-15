@@ -33,7 +33,8 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
                 sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
 
                 /* link layer */
-                for (int i = 0; i < ETHER_ADDR_LEN; i++) {
+                int i;
+                for (i = 0; i < ETHER_ADDR_LEN; i++) {
                     p_ethernet_header->ether_dhost[i] = 0xFF;
                 }
                 memcpy(p_ethernet_header->ether_shost, cur->addr, ETHER_ADDR_LEN);
