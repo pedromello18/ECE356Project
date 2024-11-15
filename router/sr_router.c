@@ -170,7 +170,7 @@ void sr_handlepacket(struct sr_instance* sr,
         if(p_ip_header->ip_dst == cur->ip)
         {
           printf("Packet for router. \n");
-          if(p_ip_header->ip_p == htons(ip_protocol_icmp))
+          if(p_ip_header->ip_p == ip_protocol_icmp)
           {
             printf("ICMP Message.\n");
             sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)(p_ip_header + sizeof(sr_ip_hdr_t));
