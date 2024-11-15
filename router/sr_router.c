@@ -174,7 +174,7 @@ void sr_handlepacket(struct sr_instance* sr,
     struct sr_if *cur = sr->if_list;
       while(cur)
       {
-        if(p_ip_header->ar_tip == cur->ip)
+        if(p_ip_header->ip_dst == cur->ip)
         {
           if(p_ip_header->ip_p == ip_protocol_icmp)
           {
