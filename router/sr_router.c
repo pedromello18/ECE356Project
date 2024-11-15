@@ -208,8 +208,8 @@ void sr_handlepacket(struct sr_instance* sr,
         cur = cur->next;
       }
     printf("Packet isn't for me. I will forward her!\n");
-    uint32_t ip_dst = best_prefix(sr, p_ip_header->ip_dst);
-    struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, ip_dst);
+    char *iface_out = best_prefix(sr, p_ip_header->ip_dst);
+    struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, iface_out->ip);
     if (arpentry)
     {
       printf("ok so she was in our arpcache. Should find her in interface list...\n");
@@ -246,22 +246,22 @@ void sr_handlepacket(struct sr_instance* sr,
   } 
 } /* end sr_handlePacket */
 
-uint32_t best_prefix(struct sr_instance *sr, uint32_t ip_addr) {
-  struct sr_rt *cur = sr->routing_table;
-  uint32_t best_match = 0;
+char *best_prefix(struct sr_instance *sr, uint32_t ip_addr) {
+  struct sr_rt *cur_rt = sr->routing_table;
+  char *best_match = NULL;  // Initialize to NULL
   uint32_t best_match_mask = 0;
 
-  while (cur) {
-    uint32_t cur_mask = cur->mask.s_addr;
-    uint32_t cur_addr = cur->dest.s_addr;
+  while (cur_rt) {
+    uint32_t cur_mask = cur_rt->mask.s_addr;
+    uint32_t cur_addr = cur_rt->dest.s_addr;
 
     if ((cur_addr & cur_mask) == (ip_addr & cur_mask)) {
       if (cur_mask > best_match_mask) {
-        best_match = cur->gw.s_addr;
+        best_match = cur_rt->interface; 
         best_match_mask = cur_mask;
       }
     }
-    cur = cur->next;
+    cur_rt = cur_rt->next;
   }
 
   return best_match;

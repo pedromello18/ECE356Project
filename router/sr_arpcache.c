@@ -26,20 +26,16 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             sr_arpreq_destroy(&sr->cache, req);
         } 
         else {
-            uint32_t ip_addr = best_prefix(sr, req->ip);
-            struct in_addr temp_ip;
-            temp_ip.s_addr = ip_addr;
-            print_addr_ip(temp_ip);
+            char *iface_name = best_prefix(sr, req->ip);
             unsigned char mac_addr[ETHER_ADDR_LEN];
-            print_addr_eth(mac_addr);
-            char iface_name[sr_IFACE_NAMELEN];
+            uint32_t ip_addr;
             struct sr_if *cur = sr->if_list;
             
             while(cur)
             {
-                if (cur->ip == ip_addr) {
+                if (strcmp(cur->name, iface_name) == 0) {
                     memcpy(mac_addr, cur->addr, ETHER_ADDR_LEN);
-                    memcpy(iface_name, cur->name, sr_IFACE_NAMELEN);
+                    memcpy(&ip_addr, cur->ip, sizeof(uint32_t));
                     printf("Interface: %s\n", iface_name);
                     break;
                 }
