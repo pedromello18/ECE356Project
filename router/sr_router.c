@@ -165,7 +165,7 @@ void sr_handlepacket(struct sr_instance* sr,
     if (received_ttl == 0)
     {
       printf("Time exceeded. \n");
-      send_icmp_t3_packet(sr, packet_to_send, len, ICMP_TYPE_TIME_EXCEEDED, ICMP_CODE_TIME_EXCEEDED, interface); /*Per ed post? Don't know*/
+      send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_TIME_EXCEEDED, ICMP_CODE_TIME_EXCEEDED, interface); /*Per ed post? Don't know*/
     }
     p_ip_header->ip_ttl = received_ttl - 1;
     p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_len); 
@@ -191,13 +191,13 @@ void sr_handlepacket(struct sr_instance* sr,
             else
             {
               printf("Not echo reply > sending port unreachable.\n");
-              send_icmp_t3_packet(sr, packet_to_send, len, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
+              send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
             }
           }
           else
           {
             printf("Protocol is not ICMP > sending port unreachable. \n");
-            send_icmp_t3_packet(sr, packet_to_send, len, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
+            send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
           }
           return;
         }
