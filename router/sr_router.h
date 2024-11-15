@@ -58,7 +58,7 @@ struct sr_instance
 
 /* -- sr_main.c -- */
 int sr_verify_routing_table(struct sr_instance* sr);
-char *best_prefix(struct sr_instance *sr, uint32_t ip_hdr);
+uint32_t best_prefix(struct sr_instance *sr, uint32_t ip_addr);
 
 /* -- sr_vns_comm.c -- */
 int sr_send_packet(struct sr_instance* , uint8_t* , unsigned int , const char*);

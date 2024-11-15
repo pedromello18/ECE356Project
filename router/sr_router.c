@@ -204,8 +204,7 @@ void sr_handlepacket(struct sr_instance* sr,
         cur = cur->next;
       }
     printf("Packet isn't for me. I will forward her!");
-    uint32_t best_prefix(struct sr_instance *sr, uint32_t ip_addr);
-
+    uint32_t ip_dst = best_prefix(struct sr_instance *sr, uint32_t ip_addr);
     struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, ip_dst);
     if (arpentry)
     {
@@ -217,7 +216,7 @@ void sr_handlepacket(struct sr_instance* sr,
         if(memcmp(arpentry->mac, cur->addr, ETHER_ADDR_LEN) == 0)
         {
           printf("Found address from arpentry in interface list.\n");
-          uint8_t[ETHER_ADDR_LEN] temp_ether_dhost;
+          uint8_t temp_ether_dhost[ETHER_ADDR_LEN];
           memcpy(temp_ether_dhost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
           memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
           memcpy(p_ethernet_header->ether_shost, temp_ether_dhost, ETHER_ADDR_LEN);
