@@ -89,7 +89,7 @@ void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int le
     p_icmp_header->icmp_type = icmp_type;
     p_icmp_header->icmp_code = icmp_code;
     p_icmp_header->icmp_sum = 0;
-    p_icmp_header->icmp_sum = htons(cksum(&p_icmp_hdr, len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t)));
+    p_icmp_header->icmp_sum = htons(cksum(&p_icmp_header, len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t)));
 
     /* ip layer */
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t));
