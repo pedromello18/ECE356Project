@@ -100,6 +100,7 @@ void sr_handlepacket(struct sr_instance* sr,
   uint16_t packet_type_id = p_ethernet_header->ether_type;
   if(packet_type_id == htons(ethertype_arp)) /* ARP */
   {
+    printf("Received ARP packet.");
     sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
     unsigned short arp_opcode = p_arp_header->ar_op;
     uint32_t ip_dest = p_arp_header->ar_tip;
