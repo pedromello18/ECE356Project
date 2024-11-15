@@ -126,7 +126,7 @@ struct sr_arpreq *sr_arpcache_queuereq(struct sr_arpcache *cache,
 
 void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req, sr_arp_hdr_t *p_arp_hdr);
 void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int len, uint8_t icmp_type, uint8_t icmp_code, char* interface);
-void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int len, uint8_t icmp_type, uint8_t icmp_code, char* interface);
+void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, uint8_t icmp_type, uint8_t icmp_code, char* interface);
 
 /* This method performs two functions:
    1) Looks up this IP in the request queue. If it is found, returns a pointer
