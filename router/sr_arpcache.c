@@ -116,7 +116,7 @@ void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int
     sr_ethernet_hdr_t *temp_ethernet_header = (sr_ethernet_hdr_t *)(p_packet);
 
     /* icmp header */
-    int icmp_len = sizeof(sr_icmp_t3_hdr_t) + htons(temp_ip_header->ip_len);
+    int icmp_len = sizeof(sr_icmp_t3_hdr_t); /*changed from married man*/
     int total_size = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + icmp_len;
     uint8_t *packet_to_send = (uint8_t *)malloc(total_size);
     
@@ -128,12 +128,13 @@ void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int
     p_icmp_header->icmp_code = icmp_code;
     p_icmp_header->icmp_sum = 0;
     p_icmp_header->unused = 0;
-    p_icmp_header->icmp_sum = cksum(p_icmp_header, icmp_len);
     p_icmp_header->next_mtu = 0;
     int i;
     for (i = 0; i < ICMP_DATA_SIZE; i++) {
         p_icmp_header->data[i] = *((uint8_t*) p_ip_header + i);
     }
+    p_icmp_header->icmp_sum = cksum(p_icmp_header, icmp_len);
+
 
     /* ip layer */
     /* memcpy(dest, src, size) */

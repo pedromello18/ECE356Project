@@ -203,7 +203,7 @@ void sr_handlepacket(struct sr_instance* sr,
         }
         cur = cur->next;
       }
-    printf("Packet isn't for me. I will forward her!");
+    printf("Packet isn't for me. I will forward her!\n");
     uint32_t ip_dst = best_prefix(sr, p_ip_header->ip_dst);
     struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, ip_dst);
     if (arpentry)
@@ -230,14 +230,15 @@ void sr_handlepacket(struct sr_instance* sr,
     else
     {
       printf("this diva was not cached :(\n");
+      
       /*
       req = arpcache_queuereq(next_hop_ip, packet, len)
       handle_arpreq(req)
   
-    Otherwise, send an ARP request for the next-hop IP
-    (if one hasn't been sent within the last second), and add the packet to the queue of
-    packets waiting on this ARP request. 
-    */
+      Otherwise, send an ARP request for the next-hop IP
+      (if one hasn't been sent within the last second), and add the packet to the queue of
+      packets waiting on this ARP request. 
+      */
 
     }
   }
