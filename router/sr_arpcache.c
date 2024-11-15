@@ -17,7 +17,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req, sr_arp_hdr_t *
         if (req->times_sent >= 5) {
             struct sr_packet *packet = req->packets;
             while (packet != NULL) {
-                send_icmp_host_unreachable(sr, packet);
+                /*send_icmp_host_unreachable(sr, packet);*/
                 packet = packet->next;
             }
             sr_arpreq_destroy(&sr->cache, req);
