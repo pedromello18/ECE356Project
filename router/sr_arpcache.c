@@ -89,7 +89,7 @@ void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int le
     p_icmp_header->icmp_type = icmp_type;
     p_icmp_header->icmp_code = icmp_code;
     p_icmp_header->icmp_sum = 0;
-    p_icmp_header->icmp_sum = htons(cksum(&p_icmp_header, len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t)));
+    p_icmp_header->icmp_sum = cksum(p_icmp_header, len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t));
 
     /* ip layer */
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t));
@@ -97,7 +97,7 @@ void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int le
     memcpy(&p_ip_header->ip_src, &p_ip_header->ip_dst, sizeof(uint32_t));
     memcpy(&p_ip_header->ip_dst, &temp_ip, sizeof(uint32_t));
     p_ip_header->ip_sum = 0;
-    p_ip_header->ip_sum = htons(cksum(p_ip_header, len - sizeof(sr_ethernet_hdr_t)));
+    p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
 
     /* link layer */
     sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)p_packet;
