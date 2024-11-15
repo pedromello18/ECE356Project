@@ -128,6 +128,7 @@ void sr_handlepacket(struct sr_instance* sr,
       {
         if(p_arp_header->ar_tip == cur->ip)
         {
+          printf("Inserting entry into our arpcache.\n");
           sr_arpcache_insert(&sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);      
           break;
         }
@@ -183,48 +184,57 @@ void sr_handlepacket(struct sr_instance* sr,
             }
             else
             {
-              printf("Sending port unreachable.\n");
+              printf("Not echo reply > sending port unreachable.\n");
               send_icmp_t3_packet(sr, packet_to_send, len, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
             }
           }
           else
           {
-            printf("Port Unreachable. \n");
+            printf("Protocol is not ICMP > sending port unreachable. \n");
             send_icmp_t3_packet(sr, packet_to_send, len, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
           }
           return;
         }
         cur = cur->next;
       }
-    /*Packet isn't for router -> forward*/
-    if (sr_arpcache_lookup(&sr->cache, p_ip_header->ip_dst))
+    printf("Packet isn't for me. I will forward her!");
+    uint32_t ip_dst = best_prefix(sr, p_ip_header->ip_dst);
+
+    sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, ip_dst);
+    if (arpentry)
     {
-      printf("ok so like now we're looking in the arpcache and we found something\n");
-      /* forward that bihhh */
+      printf("ok so she was in our arpcache. Should find her in interface list...\n");
+      /* arpentry->mac */
+      struct sr_if *cur = sr->if_list;
+      while(cur)
+      {
+        if(memcmp(arpentry->mac, cur->addr, ETHER_ADDR_LEN) == 0)
+        {
+          printf("Found address from arpentry in interface list.\n");
+          uint8_t *temp_ether_dhost = p_ethernet_header->ether_dhost;
+          p_ethernet_header->ether_dhost = p_ethernet_header->ether_shost;
+          p_ethernet_header->ether_shost = temp_ether_dhost;
+          sr_send_packet(sr, packet_to_send, len, cur->name);
+          break;
+        }
+      }
+      printf("Freeing arpentry now.\n");
+      free(arpentry);
     }
     else
     {
       printf("this diva was not cached :(\n");
-      /*queue that bihhhhh */
-    }
-
-    /* Find out which entry in the routing table has the longest prefix match with the destination IP address. */
-
-    /*
-    Check the ARP cache for the next-hop MAC address corresponding to the nexthop IP. If it's there, send it. Otherwise, send an ARP request for the next-hop IP
+      /*
+      req = arpcache_queuereq(next_hop_ip, packet, len)
+      handle_arpreq(req)
+  
+    Otherwise, send an ARP request for the next-hop IP
     (if one hasn't been sent within the last second), and add the packet to the queue of
-    packets waiting on this ARP request. Obviously, this is a very simplified version
-    of the forwarding process, and the low-level details follow. For example, if an
-    error occurs in any of the above steps, you will have to send an ICMP message
-    back to the sender notifying them of an error. You may also get an ARP request
-    or reply, which has to interact with the ARP cache correctly. 
+    packets waiting on this ARP request. 
     */
 
 
-    /* TODO: add case for destination net unreachable -> see send_icmp_net_unreachable in sr_arpchace */
-    /* TODO: add case for port unreachable -> see send_icmp_port_unreachable in sr_arpcache */
-    /* Get Destination IP using ARP */
-
+    }
   }
   else
   {
@@ -234,25 +244,23 @@ void sr_handlepacket(struct sr_instance* sr,
   } 
 } /* end sr_handlePacket */
 
-
-
-char *best_prefix(struct sr_instance *sr, uint32_t ip_hdr) {
-
+uint32_t best_prefix(struct sr_instance *sr, uint32_t ip_addr) {
   struct sr_rt *cur = sr->routing_table;
-  char best_match[sr_IFACE_NAMELEN];
+  uint32_t best_match = 0;
   uint32_t best_match_mask = 0;
+
   while (cur) {
     uint32_t cur_mask = cur->mask.s_addr;
     uint32_t cur_addr = cur->dest.s_addr;
-    char *cur_if = cur->interface;
 
-    if ((cur_addr & cur_mask) == (ip_hdr & cur_mask)) { /* might need fixing*/
+    if ((cur_addr & cur_mask) == (ip_addr & cur_mask)) {
       if (cur_mask > best_match_mask) {
-        memcpy(best_match, cur_if, sr_IFACE_NAMELEN);
+        best_match = cur->gw.s_addr;
         best_match_mask = cur_mask;
       }
     }
     cur = cur->next;
-  } 
+  }
+
   return best_match;
 }

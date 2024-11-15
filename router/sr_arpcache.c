@@ -127,7 +127,8 @@ void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int
     p_icmp_header->icmp_type = icmp_type;
     p_icmp_header->icmp_code = icmp_code;
     p_icmp_header->icmp_sum = 0;
-    p_icmp_header->icmp_sum = cksum(p_icmp_header, len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t));
+    p_icmp_header->unused = 0;
+    p_icmp_header->icmp_sum = cksum(p_icmp_header, icmp_len);
     p_icmp_header->next_mtu = 0;
     int i;
     for (i = 0; i < ICMP_DATA_SIZE; i++) {
@@ -136,11 +137,25 @@ void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int
 
     /* ip layer */
     /* memcpy(dest, src, size) */
+    /*
     memcpy(p_ip_header, temp_ip_header, sizeof(sr_ip_hdr_t));
     memcpy(&p_ip_header->ip_src, &temp_ip_header->ip_dst, sizeof(uint32_t));
     memcpy(&p_ip_header->ip_dst, &temp_ip_header->ip_src, sizeof(uint32_t));
     p_ip_header->ip_sum = 0;
-    p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
+    p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);*/
+
+    p_ip_header->ip_v = 4;
+    p_ip_header->ip_hl = 5;
+    p_ip_header->ip_tos = 0;
+    p_ip_header->ip_len = htons(sizeof(sr_ip_hdr_t) + icmp_len);
+    p_ip_header->ip_id = 0;
+    p_ip_header->ip_off = htons(IP_DF);
+    p_ip_header->ip_ttl = 64;
+    p_ip_header->ip_p = ip_protocol_icmp;
+    p_ip_header->ip_src = temp_ip_header->ip_dst;
+    p_ip_header->ip_dst = temp_ip_header->ip_src;
+    p_ip_header->ip_sum = 0;
+    p_ip_header->ip_sum = cksum(p_ip_header, sizeof(sr_ip_hdr_t));
 
     /* link layer */
     memcpy(p_ethernet_header, temp_ethernet_header, sizeof(sr_ethernet_hdr_t));
@@ -148,7 +163,7 @@ void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int
     memcpy(p_ethernet_header->ether_dhost, temp_ethernet_header->ether_shost, ETHER_ADDR_LEN);
 
     /* send packet */
-    sr_send_packet(sr, packet_to_send, len, interface);
+    sr_send_packet(sr, packet_to_send, total_size, interface);
     free(packet_to_send);
 }
 
