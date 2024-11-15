@@ -174,14 +174,16 @@ void sr_handlepacket(struct sr_instance* sr,
           {
             printf("ICMP Message.\n");
             sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)(p_ip_header + sizeof(sr_ip_hdr_t));
+            printf("ICMP Type: 0x%x ", p_icmp_header->icmp_type);
+            printf("ICMP Code: 0x%x\n", p_icmp_header->icmp_code);
             if((p_icmp_header->icmp_type == ICMP_TYPE_ECHO_REQUEST) && (p_icmp_header->icmp_code == ICMP_CODE_ECHO_REQUEST))
             {
-              printf("Echo Reply.\n");
+              printf("Sending echo reply.\n");
               send_icmp_packet(sr, packet_to_send, len, ICMP_TYPE_ECHO_REPLY, ICMP_CODE_ECHO_REPLY, interface); /* echo reply */
             }
             else
             {
-              printf("Port Unreachable. \n");
+              printf("Sending port unreachable.\n");
               send_icmp_packet(sr, packet_to_send, len, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
             }
           }
@@ -205,16 +207,6 @@ void sr_handlepacket(struct sr_instance* sr,
       printf("this diva was not cached :(\n");
       /*queue that bihhhhh */
     }
-
-
-
-
-
-
-
-
-
-
 
     /* Find out which entry in the routing table has the longest prefix match with the destination IP address. */
 
