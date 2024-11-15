@@ -96,17 +96,6 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 */
 void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int len, uint8_t icmp_type, uint8_t icmp_code, char* interface)
 {
-    /*get ip address of recepient interface*/
-    uint32_t ip_addr;
-    struct sr_if *cur = sr->if_list;
-    while(cur)
-    {
-        if (strcmp(cur->name, interface) == 0)
-        {
-            ip_addr = cur->ip;
-        }
-        cur = cur->next;
-    }
     /* icmp header */
     sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
     p_icmp_header->icmp_type = icmp_type;
@@ -117,7 +106,7 @@ void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int le
     /* ip layer */
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t));
     uint32_t temp_ip = p_ip_header->ip_src;
-    p_ip_header->ip_src = ip_addr;
+    memcpy(&p_ip_header->ip_src, &p_ip_header->ip_dst, sizeof(uint32_t));
     memcpy(&p_ip_header->ip_dst, &temp_ip, sizeof(uint32_t));
     p_ip_header->ip_sum = 0;
     p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
