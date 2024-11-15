@@ -152,6 +152,7 @@ void sr_handlepacket(struct sr_instance* sr,
     if(received_checksum != htons(expected_checksum))
     {
       printf("Checksum detected an error > packet dropped. \n");
+      printf("Expected: 0x%x\nReceived: 0x%x", expected_checksum, received_checksum);
       return;
     }
 
