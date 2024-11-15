@@ -14,48 +14,60 @@
 void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
     time_t now = time(NULL);
     if (difftime(now, req->sent) >= 1.0) {
+        printf("Can resend request! \n");
         if (req->times_sent >= 5) {
+            printf("Request sent at least 5 times.           \n");
             struct sr_packet *packet = req->packets;
-            while (packet != NULL) {
-                send_icmp_t3_packet(sr, packet, ICMP_TYPE_UNREACHABLE, ICMP_CODE_DESTINATION_HOST_UNREACHABLE, packet->iface); 
+            while(packet != NULL) {
+                printf("Sending Host Unreachable ICMP Message.\n");
+                send_icmp_t3_packet(sr, packet->buf, ICMP_TYPE_UNREACHABLE, ICMP_CODE_DESTINATION_HOST_UNREACHABLE, packet->iface); 
                 packet = packet->next;
             }
             sr_arpreq_destroy(&sr->cache, req);
         } 
         else {
+            uint32_t ip_addr = best_prefix(sr, req->ip);
+            unsigned char mac_addr[ETHER_ADDR_LEN];
+            char iface_name[sr_IFACE_NAMELEN];
             struct sr_if *cur = sr->if_list;
+            
             while(cur)
             {
-                /* create arp request  and send it */
-                uint32_t len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t);
-                uint8_t *packet_to_send = (uint8_t *)malloc(len);
-                sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)packet_to_send;
-                sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
-
-                /* link layer */
-                int i;
-                for (i = 0; i < ETHER_ADDR_LEN; i++) {
-                    p_ethernet_header->ether_dhost[i] = 0xFF;
+                if (cur->ip == ip_addr) {
+                    memcpy(mac_addr, cur->addr, ETHER_ADDR_LEN);
+                    memcpy(iface_name, cur->name, sr_IFACE_NAMELEN);
+                    break;
                 }
-                memcpy(p_ethernet_header->ether_shost, cur->addr, ETHER_ADDR_LEN);
-                p_ethernet_header->ether_type = ethertype_arp;
-
-                /* arp header */
-                p_arp_header->ar_hrd = htons(arp_hrd_ethernet);
-                p_arp_header->ar_pro = htons(ethertype_ip); /* maybe? */
-                p_arp_header->ar_hln = ETHER_ADDR_LEN;
-                p_arp_header->ar_pln = sizeof(uint32_t); /* hopefully? */
-                p_arp_header->ar_op = htons(arp_op_request);
-                memcpy(p_arp_header->ar_sha, cur->addr, ETHER_ADDR_LEN);
-                p_arp_header->ar_sip = cur->ip;
-                memset(p_arp_header->ar_tha, ARP_BROADCAST_ADDRESS, ETHER_ADDR_LEN);
-                p_arp_header->ar_tip = req->ip;
-
-                sr_send_packet(sr, packet_to_send, len, cur->name);
-                req->sent = now;
-                req->times_sent++;
                 cur = cur->next;
             }
+            
+            printf("Sending an ARP request.\n");
+            /* create arp request  and send it */
+            uint32_t len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t);
+            uint8_t *packet_to_send = (uint8_t *)malloc(len);
+            sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)packet_to_send;
+            sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
+
+            /* link layer */
+            memset(p_ethernet_header->ether_dhost, ARP_BROADCAST_ADDRESS, ETHER_ADDR_LEN);
+            memcpy(p_ethernet_header->ether_shost, mac_addr, ETHER_ADDR_LEN);
+            p_ethernet_header->ether_type = ethertype_arp;
+
+            /* arp header */
+            p_arp_header->ar_hrd = htons(arp_hrd_ethernet);
+            p_arp_header->ar_pro = htons(ethertype_ip); /* maybe? */
+            p_arp_header->ar_hln = ETHER_ADDR_LEN;
+            p_arp_header->ar_pln = sizeof(uint32_t); /* hopefully? */
+            p_arp_header->ar_op = htons(arp_op_request);
+            memcpy(p_arp_header->ar_sha, mac_addr, ETHER_ADDR_LEN);
+            p_arp_header->ar_sip = htonl(ip_addr); 
+            memset(p_arp_header->ar_tha, 0, ETHER_ADDR_LEN);
+            p_arp_header->ar_tip = htonl(req->ip);
+
+            sr_send_packet(sr, packet_to_send, len, iface_name);
+            free(packet_to_send);
+            req->sent = now;
+            req->times_sent++;
         }
     }
  }
