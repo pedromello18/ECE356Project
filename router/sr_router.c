@@ -135,6 +135,7 @@ void sr_handlepacket(struct sr_instance* sr,
             struct sr_packet *queued_packet = arpreq->packets;
             while (queued_packet)
             {
+              print_hdrs(queued_packet->buf, queued_packet->len);
               sr_send_packet(sr, queued_packet->buf, queued_packet->len, queued_packet->iface);
               queued_packet = queued_packet->next;
             }
@@ -244,8 +245,7 @@ void sr_handlepacket(struct sr_instance* sr,
     else
     {
       printf("this diva was not cached :(\n");
-      print_hdrs(packet, len);
-      struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_ip_header->ip_dst, packet, sizeof(packet), iface_out);
+      struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_ip_header->ip_dst, packet, sizeof(packet), iface_out_name);
       handle_arpreq(sr, arpreq);
     }
   }
