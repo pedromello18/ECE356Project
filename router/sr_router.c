@@ -172,10 +172,10 @@ void sr_handlepacket(struct sr_instance* sr,
           printf("Packet for router. \n");
           if(p_ip_header->ip_p == ip_protocol_icmp)
           {
-            printf("ICMP Message.\n");
+            printf("ICMP Message - ");
             sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)(p_ip_header + sizeof(sr_ip_hdr_t));
-            printf("ICMP Type: 0x%x ", p_icmp_header->icmp_type);
-            printf("ICMP Code: 0x%x\n", p_icmp_header->icmp_code);
+            printf("Type: %d, ", p_icmp_header->icmp_type);
+            printf("Code: %d\n", p_icmp_header->icmp_code);
             if((p_icmp_header->icmp_type == ICMP_TYPE_ECHO_REQUEST) && (p_icmp_header->icmp_code == ICMP_CODE_ECHO_REQUEST))
             {
               printf("Sending echo reply.\n");
