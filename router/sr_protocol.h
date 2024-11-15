@@ -88,6 +88,8 @@
 #define ICMP_CODE_PORT_UNREACHABLE 3
 #define ICMP_CODE_TIME_EXCEEDED 0
 
+#define ARP_BROADCAST_ADDRESS 0xFFFFFFFFFFFF
+
 /* Structure of a ICMP header
  */
 struct sr_icmp_hdr {

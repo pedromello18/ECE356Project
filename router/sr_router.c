@@ -132,8 +132,12 @@ void sr_handlepacket(struct sr_instance* sr,
           struct sr_arpreq *arpreq = sr_arpcache_insert(&sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);   
           if(arpreq)
           {
-            /* Pedro please :) */
-            /* send all packets on the req->packets linked list */
+            struct sr_packet *queued_packet = arpreq->packets;
+            while (queued_packet)
+            {
+              sr_send_packet(sr, queued_packet->buf, queued_packet->len, queued_packet->iface);
+              queued_packet = queued_packet->next;
+            }
             sr_arpreq_destroy(&sr->cache, arpreq);
           }   
           break;
@@ -230,17 +234,8 @@ void sr_handlepacket(struct sr_instance* sr,
     else
     {
       printf("this diva was not cached :(\n");
-      /* struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, /*ip*/ /*...*/ 
-      /* handle_arpreq(arpreq);
-      /*
-      req = arpcache_queuereq(next_hop_ip, packet, len)
-      handle_arpreq(req)
-  
-      Otherwise, send an ARP request for the next-hop IP
-      (if one hasn't been sent within the last second), and add the packet to the queue of
-      packets waiting on this ARP request. 
-      */
-
+      struct sr_arpreq *arpreq = sr_arpcache_queuereq(sr->cache, p_ip_header->ip_dst, packet, sizeof(packet), interface);
+      handle_arpreq(sr, arpreq);
     }
   }
   else
