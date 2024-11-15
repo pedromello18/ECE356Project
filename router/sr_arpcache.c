@@ -30,11 +30,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req, sr_arp_hdr_t *
         if (req->times_sent >= 5) {
             struct sr_packet *packet = req->packets;
             while (packet != NULL) {
-                
-                int icmp_len = sizeof(sr_icmp_t3_hdr_t) + htons(incoming_ip_hdr->ip_len);
-                total_size = sizeof(sr_ethernet_hdr_t)+sizeof(sr_ip_hdr_t) + icmp_len;
-                
-                send_icmp_t3_packet(sr, packet, /*len*/, ICMP_TYPE_UNREACHABLE, ICMP_CODE_DESTINATION_HOST_UNREACHABLE)
+                /* send_icmp_t3_packet(sr, packet, /*len, ICMP_TYPE_UNREACHABLE, ICMP_CODE_DESTINATION_HOST_UNREACHABLE, ) */
                 packet = packet->next;
             }
             sr_arpreq_destroy(&sr->cache, req);
@@ -126,7 +122,7 @@ void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int le
     /* send packet */
     sr_send_packet(sr, p_packet, len, interface);
 }
-
+/*todo: take out len here*/
 void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int len, uint8_t icmp_type, uint8_t icmp_code, char* interface)
 {
     sr_ip_hdr_t *temp_ip_header = (sr_ip_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t));

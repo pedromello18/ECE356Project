@@ -230,7 +230,7 @@ void sr_handlepacket(struct sr_instance* sr,
     else
     {
       printf("this diva was not cached :(\n");
-      struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, /*ip*/, /*...*/ )
+      /* struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, /*ip*/ /*...*/ 
       handle_arpreq(arpreq);
       /*
       req = arpcache_queuereq(next_hop_ip, packet, len)
