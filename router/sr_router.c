@@ -78,14 +78,6 @@ void sr_handlepacket(struct sr_instance* sr,
   assert(packet);
   assert(interface);
 
-  printf("*** -> Received packet of length %d \n",len);
-  int i;
-  for(i=0; i<len; i++)
-  {
-    printf("%x ", *(packet+i));
-  }
-  printf("\n");
-
   /* Sanity check the packet (meets minimum length and has correct checksum). */
   if(len < sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t)) /*minimum length of packet we can receive, 34 bytes*/
   {
@@ -107,6 +99,7 @@ void sr_handlepacket(struct sr_instance* sr,
 
     if (arp_opcode == htons(arp_op_request))
     {
+      printf("ARP Request.\n");
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
@@ -129,6 +122,7 @@ void sr_handlepacket(struct sr_instance* sr,
     }
     else if (arp_opcode == htons(arp_op_reply)) 
     {
+      printf("ARP Reply.\n");
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
@@ -163,6 +157,7 @@ void sr_handlepacket(struct sr_instance* sr,
     uint8_t received_ttl = p_ip_header->ip_ttl;
     if (received_ttl == 0)
     {
+      printf("Time exceeded. \n");
       send_icmp_packet(sr, packet_to_send, len, ICMP_TYPE_TIME_EXCEEDED, ICMP_CODE_TIME_EXCEEDED, interface); 
     }
     p_ip_header->ip_ttl = received_ttl - 1;
@@ -174,20 +169,24 @@ void sr_handlepacket(struct sr_instance* sr,
       {
         if(p_ip_header->ip_dst == cur->ip)
         {
+          printf("Packet for router. \n");
           if(p_ip_header->ip_p == htons(ip_protocol_icmp))
           {
             sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)(p_ip_header + sizeof(sr_ip_hdr_t));
             if((p_icmp_header->icmp_type == ICMP_TYPE_ECHO_REQUEST) && (p_icmp_header->icmp_code == ICMP_CODE_ECHO_REQUEST))
             {
+              printf("Echo Reply. \n");
               send_icmp_packet(sr, packet_to_send, len, ICMP_TYPE_ECHO_REPLY, ICMP_CODE_ECHO_REPLY, interface); /* echo reply */
             }
             else
             {
+              printf("Type Unreachable. \n");
               send_icmp_packet(sr, packet_to_send, len, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
             }
           }
           else
           {
+            printf("Type Unreachable. \n");
             send_icmp_packet(sr, packet_to_send, len, ICMP_TYPE_UNREACHABLE, ICMP_CODE_PORT_UNREACHABLE, interface); /* port unreachable */
           }
           return;
@@ -197,10 +196,12 @@ void sr_handlepacket(struct sr_instance* sr,
     /*Packet isn't for router -> forward*/
     if (sr_arpcache_lookup(&sr->cache, p_ip_header->ip_dst))
     {
+      printf("ok so like now we're looking in the arpcache and we found something\n");
       /* forward that bihhh */
     }
     else
     {
+      printf("this diva was not cached :(\n");
       /*queue that bihhhhh */
     }
 
