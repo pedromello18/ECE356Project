@@ -207,18 +207,19 @@ void sr_handlepacket(struct sr_instance* sr,
         }
         cur = cur->next;
       }
-    printf("Packet isn't for me. I will forward her!\n");
-    char *iface_out_name = best_prefix(sr, p_ip_header->ip_dst);
-    struct sr_if *cur_if = sr->if_list;
-    struct sr_if *iface_out;
-    while(cur_if)
-    {
-      if (strcmp(iface_out_name, cur->name)) {
-        iface_out = cur_if;
-        break;
+      printf("Packet isn't for me. I will forward her!\n");
+      char *iface_out_name = best_prefix(sr, p_ip_header->ip_dst);
+      struct sr_if *cur_if = sr->if_list;
+      struct sr_if *iface_out;
+      while(cur_if)
+      {
+        if (strcmp(iface_out_name, cur->name)) 
+        {
+          iface_out = cur_if;
+          break;
+        }
+        cur_if = cur_if->next;
       }
-      cur = cur->next;
-    }
     struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, iface_out->ip);
     if (arpentry)
     {
