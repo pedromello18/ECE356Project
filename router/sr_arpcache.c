@@ -124,7 +124,7 @@ void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int
     sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t));
     int i;
     for (i = 0; i < ICMP_DATA_SIZE; i++) {
-        p_icmp_header->data[i] = *((uint8_t*) incoming_ip_hdr + i);
+        p_icmp_header->data[i] = *((uint8_t*) p_ip_header + i);
     }
     uint32_t temp_ip = p_ip_header->ip_src;
     memcpy(&p_ip_header->ip_src, &p_ip_header->ip_dst, sizeof(uint32_t));
