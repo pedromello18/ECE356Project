@@ -105,7 +105,7 @@ void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int le
         {
             ip_addr = cur->ip;
         }
-        cur = cur->next
+        cur = cur->next;
     }
     /* icmp header */
     sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
