@@ -26,7 +26,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req, sr_arp_hdr_t *
             /* TODO: fix this part */
             uint8_t *packet_to_send = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t));
             sr_ethernet_hdr_t *ethernet_header = (sr_ethernet_hdr_t *)packet_to_send;
-            sr_arp_hdr_t *arp_header = (sr_arp_hdr_t *)(packet_to_sent + sizeof(sr_ethernet_hdr_t));
+            sr_arp_hdr_t *arp_header = (sr_arp_hdr_t *)(packet_to_send + sizeof(sr_ethernet_hdr_t));
 
             /* link layer */
             
