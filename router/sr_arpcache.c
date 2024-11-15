@@ -30,9 +30,9 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req, sr_arp_hdr_t *
 
             /* link layer */
             
-            ethernet_header->ether_dhost = ?
+            /*ethernet_header->ether_dhost = ?
             ethernet_header->ether_shost = ?
-            ethernet_header->ether_type = ethertype_arp;
+            ethernet_header->ether_type = ethertype_arp;*/
 
             /* arp header */
 
