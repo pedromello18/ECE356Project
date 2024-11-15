@@ -87,7 +87,7 @@ void sr_handlepacket(struct sr_instance* sr,
   printf("\n");
 
   /* Sanity check the packet (meets minimum length and has correct checksum). */
-  if(len - 14 < 21)
+  if(len < sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t)) /*minimum length of packet we can receive, 34 bytes*/
   {
     printf("Invalid length > packet dropped.");
     return;
@@ -96,13 +96,13 @@ void sr_handlepacket(struct sr_instance* sr,
   /* See if this is an ARP or IP packet type */
   sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)packet;
   uint16_t packet_type_id = p_ethernet_header->ether_type;
-  if(packet_type_id == ethertype_arp) /* ARP */
+  if(packet_type_id == htons(ethertype_arp)) /* ARP */
   {
-    sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *) packet + 14;
+    sr_arp_hdr_t *p_arp_header = (sr_arp_hdr_t *)(packet + sizeof(sr_ethernet_hdr_t));
     unsigned short arp_opcode = p_arp_header->ar_op;
     uint32_t ip_dest = p_arp_header->ar_tip;
 
-    if (arp_opcode == arp_op_request)
+    if (arp_opcode == htons(arp_op_request))
     {
       /*
       In the case of an ARP request, you should only send an ARP reply 
@@ -114,58 +114,55 @@ void sr_handlepacket(struct sr_instance* sr,
       {
         if(cur->ip == ip_dest)
         {
-          struct sr_arpentry *arpentry = sr_arpcache_lookup(&sr->cache, ip_dest); 
-          if(arpentry)
-          {
-            memset(&p_arp_header->ar_op, arp_op_reply, sizeof(arp_op_reply));
-            /* arpentry->mac where tf do we put this ? */   
-            memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
-            memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
-            /*sr_send_packet( um? );*/
-            /* todo: send  the thing */
-            free(arpentry);
-          }
-          else
-          {
-            struct sr_arpreq *arpreq = sr_arpcache_queuereq(&sr->cache, p_arp_header->ar_tip, packet, len, interface);
-            handle_arpreq(sr, arpreq, p_arp_header);
-            free(arpreq);
-          }
-          break;
+          p_arp_header->ar_op = htons(arp_op_reply);
+          memcpy(p_arp_header->ar_sha, cur->addr, ETHER_ADDR_LEN);
+          p_arp_header->ar_sip = cur->ip;
+          memcpy(p_arp_header->ar_tha, p_arp_header->ar_sha, ETHER_ADDR_LEN);
+          p_arp_header->ar_tip = p_arp_header->ar_sip;
+          memcpy(p_ethernet_header->ether_dhost, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
+          memcpy(p_ethernet_header->ether_shost, cur->addr, ETHER_ADDR_LEN);
+
+          sr_send_packet(sr, packet, len, interface);
+          return;
         }
         cur = cur->next;
       }
+      /*arp request not to us -> iterated throughout all of our ip addresses; silent drop*/
+      return;
     }
-    else if (arp_opcode == arp_op_reply) 
+    else if (arp_opcode == htons(arp_op_reply)) 
     {
       /* 
       In the case of an ARP reply, you should only cache the entry 
       if the target IP address is one of your router's IP addresses. 
       */
-      uint8_t forward = 1;
+      /*uint8_t forward = 1;*/
       struct sr_if *cur = sr->if_list;
       while(cur)
       {
         if(p_arp_header->ar_tip == cur->ip)
         {
           sr_arpcache_insert(&sr->cache, p_arp_header->ar_sha, p_arp_header->ar_sip);      
-          forward = 0;
+          /*forward = 0;*/
           break;
         }
         cur = cur->next;
       }
-
+      return; /*dealt with packet*/
+      /*
       if(forward)
       {
        char* iface = best_prefix(sr, ip_dest);
        sr_send_packet(sr, packet, len, iface);
       }
+      */
     }
   } 
-  else if(packet_type_id == ethertype_ip) /* IP */
+  else if(packet_type_id == htons(ethertype_ip)) /* IP */
   {
-    sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *) packet + 14;
+    sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(packet + sizeof(sr_ethernet_hdr_t));
     
+    /*If packet currpted, drop*/
     uint16_t expected_checksum = cksum(p_ip_header, p_ip_header->ip_len);
     uint16_t received_checksum = p_ip_header->ip_sum;
     if(received_checksum != expected_checksum)
@@ -173,12 +170,75 @@ void sr_handlepacket(struct sr_instance* sr,
       printf("Checksum detected an error > packet dropped.");
       return;
     }
+    /*Check if packet is for router*/
+    struct sr_if *cur = sr->if_list;
+      while(cur)
+      {
+        if(p_ip_header->ar_tip == cur->ip)
+        {
+          if(p_ip_header->ip_p == ip_protocol_icmp)
+          {
+            sr_icmp_hdr_t *p_icmp_header = (sr_icmp_hdr_t *)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+            if((p_icmp_header->icmp_type == 8) && (p_icmp_header->icmp_code == 0)) /*Echo Request*/
+            {
+              p_icmp_header->icmp_type = 0;
+              p_icmp_header->icmp_sum = 0;
+              p_icmp_header->icmp_sum = cksum(p_icmp_header, len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t));
+
+              uint32_t temp_ip = p_ip_header->ip_src;
+              memcpy(&p_ip_header->ip_src, &p_ip_header->ip_dst, sizeof(uint32_t));
+              memcpy(&p_ip_header->ip_dst, &temp_ip, sizeof(uint32_t));
+              p_ip_header->ip_sum = 0;
+              p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4); /*unsure*/
+
+              uint8_t temp_mac[ETHER_ADDR_LEN];
+              memcpy(temp_mac, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
+              memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
+              memcpy(p_ethernet_header->ether_dhost, temp_mac, ETHER_ADDR_LEN);
+
+              sr_send_packet(sr, packet, len, interface);
+            }
+          }
+          else
+          {
+            send_icmp_port_unreachable(sr, packet); /*TODO should have same args as send_packet*/
+          }
+        }
+        cur = cur->next;
+      }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     /* Decrement the TTL by 1, and recompute the packet checksum over the modified header. */
     uint8_t received_ttl = p_ip_header->ip_ttl;
     if (received_ttl == 0)
     {
-      /* time exceeded > send ICMP message */
+      /* TODO time exceeded > send ICMP message */
       sr_icmp_hdr_t icmp_hdr;
       icmp_hdr.icmp_type = 11;
       icmp_hdr.icmp_code = 0;
@@ -205,10 +265,11 @@ void sr_handlepacket(struct sr_instance* sr,
     /* TODO: add case for destination net unreachable -> see send_icmp_net_unreachable in sr_arpchace */
     /* TODO: add case for port unreachable -> see send_icmp_port_unreachable in sr_arpcache */
     /* Get Destination IP using ARP */
+    /*
     if (p_ip_header->ip_p == ip_protocol_icmp)
     {
         sr_icmp_hdr_t *icmp_hdr = (sr_icmp_hdr_t *)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
-        if (icmp_hdr->icmp_type == 8 && icmp_hdr->icmp_code == 0) /* Echo Request */
+        if (icmp_hdr->icmp_type == 8 && icmp_hdr->icmp_code == 0) /* Echo Request 
         {
             struct sr_if *iface = sr->if_list;
             int is_for_us = 0;
@@ -236,7 +297,7 @@ void sr_handlepacket(struct sr_instance* sr,
                 return;
             }
         }
-    }
+    }*/
   }
   else
   {
