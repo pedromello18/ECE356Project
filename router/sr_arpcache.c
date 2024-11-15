@@ -30,13 +30,13 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             printf("Interface: %s\n", iface_name);
             unsigned char mac_addr[ETHER_ADDR_LEN];
             uint32_t ip_addr;
+
             struct sr_if *cur = sr->if_list;
-            
             while(cur)
             {
                 if (strcmp(cur->name, iface_name) == 0) {
                     memcpy(mac_addr, cur->addr, ETHER_ADDR_LEN);
-                    memcpy(&ip_addr, cur->ip, sizeof(uint32_t));
+                    ip_addr = cur->ip;
                     break;
                 }
                 cur = cur->next;

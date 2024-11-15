@@ -275,6 +275,6 @@ char *best_prefix(struct sr_instance *sr, uint32_t ip_addr) {
     cur_rt = cur_rt->next;
   }
   
-  printf("Best match: %s", best_match);
+  printf("Best match: %s\n", best_match);
   return best_match;
 }
