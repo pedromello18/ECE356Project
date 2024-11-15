@@ -224,7 +224,6 @@ void sr_handlepacket(struct sr_instance* sr,
     if (arpentry)
     {
       printf("ok so she was in our arpcache. Should find her in interface list...\n");
-      /* arpentry->mac */
       struct sr_if *cur = sr->if_list;
       while(cur)
       {

@@ -64,6 +64,15 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             p_arp_header->ar_sip = htonl(ip_addr); 
             memset(p_arp_header->ar_tha, 0, ETHER_ADDR_LEN);
             p_arp_header->ar_tip = htonl(req->ip);
+            in_addr temp_ip;
+            temp_ip.s_addr = req->ip;
+            printf("req->ip: \n");
+            print_addr_ip(temp_ip);
+            temp_ip.s_addr = ip_addr;
+            printf("ip_addr: \n");
+            print_addr_ip(temp_ip);
+            
+
 
             sr_send_packet(sr, packet_to_send, len, iface_name);
             printf("ARP request sent!\n");
