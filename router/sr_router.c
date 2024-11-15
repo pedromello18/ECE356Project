@@ -152,7 +152,7 @@ void sr_handlepacket(struct sr_instance* sr,
     uint16_t expected_checksum = cksum(p_ip_header, p_ip_header->ip_hl * 4); /*Convert words to bytes*/
     p_ip_header->ip_sum = received_checksum;
     
-    if(received_checksum != htons(expected_checksum))
+    if(received_checksum != expected_checksum)
     {
       printf("Checksum detected an error > packet dropped. \n");
       printf("Expected: 0x%x\nReceived: 0x%x", expected_checksum, received_checksum);
