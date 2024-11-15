@@ -218,7 +218,7 @@ void sr_handlepacket(struct sr_instance* sr,
       struct sr_if *iface_out;
       while(cur_if)
       {
-        if (strcmp(iface_out_name, cur->name)) 
+        if (strcmp(iface_out_name, cur_if->name)) 
         {
           iface_out = cur_if;
           break;
