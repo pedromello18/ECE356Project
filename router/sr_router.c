@@ -94,7 +94,7 @@ void sr_handlepacket(struct sr_instance* sr,
   }
 
   uint8_t *packet_to_send = (uint8_t *)malloc(len);
-  memcpy(packet, packet_to_send, len);
+  memcpy(packet_to_send, packet, len);
 
   sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)packet_to_send;
   uint16_t packet_type_id = p_ethernet_header->ether_type;
