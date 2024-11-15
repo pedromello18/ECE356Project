@@ -173,6 +173,7 @@ void sr_handlepacket(struct sr_instance* sr,
     {
       printf("Time exceeded. \n");
       send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_TIME_EXCEEDED, ICMP_CODE_TIME_EXCEEDED, interface); /*Per ed post? Don't know*/
+      return;
     }
     /*p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_len); Dont think its necessary*/ 
 
@@ -214,6 +215,7 @@ void sr_handlepacket(struct sr_instance* sr,
       if (iface_out_name == NULL)
       {
         send_icmp_t3_packet(sr, packet_to_send, ICMP_TYPE_UNREACHABLE, ICMP_CODE_DESTINATION_NET_UNREACHABLE, interface);
+        return;
       }
       struct sr_if *cur_if = sr->if_list;
       struct sr_if *iface_out;
