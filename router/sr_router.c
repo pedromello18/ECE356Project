@@ -135,7 +135,7 @@ void sr_handlepacket(struct sr_instance* sr,
             struct sr_packet *queued_packet = arpreq->packets;
             while (queued_packet)
             {
-              sr_ethernet_hdr_t p_out_ethernet_header = (sr_ethernet_hdr_t *) queued_packet->buf;
+              sr_ethernet_hdr_t *p_out_ethernet_header = (sr_ethernet_hdr_t *) queued_packet->buf;
               memcpy(p_out_ethernet_header->ether_dhost, p_arp_header->ar_sha, ETHER_ADDR_LEN);
               memcpy(p_out_ethernet_header->ether_shost, p_arp_header->ar_tha, ETHER_ADDR_LEN);
               sr_send_packet(sr, queued_packet->buf, queued_packet->len, queued_packet->iface);
