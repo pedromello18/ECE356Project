@@ -110,6 +110,39 @@ void send_icmp_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int le
     sr_send_packet(sr, p_packet, len, interface);
 }
 
+void send_icmp_t3_packet(struct sr_instance* sr, uint8_t *p_packet, unsigned int len, uint8_t icmp_type, uint8_t icmp_code, char* interface)
+{
+    /* icmp header */
+    sr_icmp_t3_hdr_t *p_icmp_header = (sr_icmp_t3_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+    p_icmp_header->icmp_type = icmp_type;
+    p_icmp_header->icmp_code = icmp_code;
+    p_icmp_header->icmp_sum = 0;
+    p_icmp_header->icmp_sum = cksum(p_icmp_header, len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t));
+    p_icmp_header->next_mtu = 0;
+
+    /* ip layer */
+    sr_ip_hdr_t *p_ip_header = (sr_ip_hdr_t *)(p_packet + sizeof(sr_ethernet_hdr_t));
+    int i;
+    for (i = 0; i < ICMP_DATA_SIZE; i++) {
+        p_icmp_header->data[i] = *((uint8_t*) incoming_ip_hdr + i);
+    }
+    uint32_t temp_ip = p_ip_header->ip_src;
+    memcpy(&p_ip_header->ip_src, &p_ip_header->ip_dst, sizeof(uint32_t));
+    memcpy(&p_ip_header->ip_dst, &temp_ip, sizeof(uint32_t));
+    p_ip_header->ip_sum = 0;
+    p_ip_header->ip_sum = cksum(p_ip_header, p_ip_header->ip_hl * 4);
+
+    /* link layer */
+    sr_ethernet_hdr_t *p_ethernet_header = (sr_ethernet_hdr_t *)p_packet;
+    uint8_t temp_mac[ETHER_ADDR_LEN];
+    memcpy(temp_mac, p_ethernet_header->ether_shost, ETHER_ADDR_LEN);
+    memcpy(p_ethernet_header->ether_shost, p_ethernet_header->ether_dhost, ETHER_ADDR_LEN);
+    memcpy(p_ethernet_header->ether_dhost, temp_mac, ETHER_ADDR_LEN);
+
+    /* send packet */
+    sr_send_packet(sr, p_packet, len, interface);
+}
+
 /* You should not need to touch the rest of this code. */
 
 /* Checks if an IP->MAC mapping is in the cache. IP is in network byte order.
